@@ -1,0 +1,25 @@
+package:
+  name: miros
+  dependencies:
+    - aff
+    - console
+    - debug
+    - debugged
+    - effect
+    - either
+    - maybe
+    - node-fs
+    - prelude
+    - string-parsers
+    - transformers
+    - tuples
+  test:
+    main: Test.Main
+    dependencies: []
+workspace:
+  package_set:
+    registry: 50.3.0
+  extra_packages:
+    debugged:
+      git: https://github.com/mateiadrielrafael/purescript-debugged.git
+      ref: 0d5a4149279129f10c8fe2a3ef280b9fde4d5116
