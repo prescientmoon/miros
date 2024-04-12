@@ -1,25 +1,29 @@
 module Miros.Parser.Lib
-  ( IndentationRelation(..)
-  , IndentationRange
-  , Indentation
-  , Column
+  ( Parser
   , ParserState
-  , Parser
-  , indented
-  , withRelation
+  , Indentation
+  , IndentationRange
+  , IndentationRelation(..)
+  , Rune
   , absolute
-  , liftUnchecked
+  , withRelation
+  , agt
+  , agte
+  , token
+  , indented
   , runParser
+  , peek
+  , next
+  , peekMany
+  , nextMany
+  , fail
   ) where
 
 import Miros.Prelude
-
 import Data.Array as Array
-import Data.String.CodeUnits as CU
-import StringParser as SP
 
+-- {{{ Basic types
 type Indentation = Int
-type Column = Int
 type IndentationRange = Indentation /\ Indentation
 data IndentationRelation
   = IEq
@@ -28,6 +32,77 @@ data IndentationRelation
   | IAny
   | IConst Indentation
 
+type ParserState =
+  { indentationRange :: IndentationRange
+  , absolute :: Boolean
+  , relation :: IndentationRelation
+  }
+
+type Location = Int /\ Int
+
+type ParserError =
+  { message :: String
+  , location :: Location
+  }
+
+-- Full unicode char
+type Rune = String
+
+derive instance Generic IndentationRelation _
+instance Debug IndentationRelation where
+  debug = genericDebug
+
+-- }}}
+-- {{{ FFI 
+foreign import data Parser :: Type -> Type
+foreign import bindImpl :: forall a b. Parser a -> (a -> Parser b) -> Parser b
+foreign import pureImpl :: forall a. a -> Parser a
+foreign import mapImpl :: forall a b. (a -> b) -> Parser a -> Parser b
+foreign import deferImpl :: forall a. (Unit -> Parser a) -> Parser a
+foreign import nextMany :: Int -> Parser (Array Rune)
+foreign import peekMany :: Int -> Parser (Array Rune)
+foreign import getState :: Parser ParserState
+foreign import setState :: ParserState -> Parser Unit
+foreign import fail :: forall a. String -> Parser a
+foreign import runParserImpl
+  :: forall a r
+   . (forall x y. x -> y -> x /\ y)
+  -> (a -> r)
+  -> (ParserError -> r)
+  -> ParserState
+  -> String
+  -> Parser a
+  -> r
+
+foreign import getLine :: Parser Int
+foreign import getColumn :: Parser Int
+
+instance Functor Parser where
+  map = mapImpl
+
+instance Apply Parser where
+  apply = ap
+
+instance Applicative Parser where
+  pure = pureImpl
+
+instance Bind Parser where
+  bind = bindImpl
+
+instance Monad Parser
+
+instance MonadState ParserState Parser where
+  state f = do
+    old <- getState
+    let result /\ new = f old
+    setState new
+    pure result
+
+instance Lazy (Parser a) where
+  defer = deferImpl
+
+-- }}}
+-- {{{ Basic pure functions 
 inRange :: IndentationRange -> Indentation -> Boolean
 inRange (from /\ to) i = from <= i && i <= to
 
@@ -56,17 +131,22 @@ unapplyRelation
   IConst i -> initial
   IAny -> initial
 
-type ParserState =
-  { indentationRange :: IndentationRange
-  , column :: Column
-  , absolute :: Boolean
-  , relation :: IndentationRelation
-  }
+-- }}}
 
-type Parser a = StateT ParserState SP.Parser a
+peek :: Parser (Maybe Rune)
+peek = map Array.head (peekMany 1)
+
+next :: Parser (Maybe Rune)
+next = map Array.head (nextMany 1)
 
 absolute :: forall a. Parser a -> Parser a
 absolute p = modify_ _ { absolute = true } *> p
+
+agt :: forall a. Parser a -> Parser a
+agt = absolute >>> withRelation IGt
+
+agte :: forall a. Parser a -> Parser a
+agte = absolute >>> withRelation IGte
 
 withRelation :: forall a. IndentationRelation -> Parser a -> Parser a
 withRelation relation parser = do
@@ -80,12 +160,6 @@ withRelation relation parser = do
             relation
             initial.indentationRange
       }
-    traceM $ fold
-      [ "Apply "
-      , pretty relation
-      , ": "
-      , pretty $ applyRelation relation initial.indentationRange
-      ]
     result <- parser
     state <- get
     put $ state
@@ -96,64 +170,20 @@ withRelation relation parser = do
             initial.indentationRange
             state.indentationRange
       }
-    traceM $ fold
-      [ "Unapply "
-      , pretty relation
-      , ": "
-      , pretty $ unapplyRelation
-          initial.relation
-          initial.indentationRange
-          state.indentationRange
-      ]
     pure result
 
-currentSubstring :: Parser SP.PosString
-currentSubstring = lift $ SP.Parser \string -> pure
-  { result: string
-  , suffix: string
-  }
-
--- | Traverse a string, and compute the final column position
-updateColumn
-  :: String
-  -> Int
-  -> Column
-  -> Column
-updateColumn string len = go 0
-  where
-  go at indentation
-    | at == len = indentation
-    | otherwise = go (at + 1)
-        case CU.charAt at string of
-          Just '\n' -> 0
-          _ -> indentation + 1
+token :: forall a. Debug a => Parser a -> Parser a
+token = withRelation IGt <<< indented
 
 -- | Lift a normal parser into one which traces indentation. 
--- |
--- | Accepts a flag which specifies whether to ensure the indentation is correct. 
--- |
--- | This is typically set to false for space-parsers only.
-liftParser :: forall a. Debug a => Boolean -> SP.Parser a -> Parser a
-liftParser nonSpace parser = do
-  start <- currentSubstring
-  result <- lift parser
-  end <- currentSubstring
+indented :: forall a. Debug a => Parser a -> Parser a
+indented parser = do
+  column <- getColumn
+  result <- parser
   state <- get
 
-  let
-    column = updateColumn
-      start.substring
-      (end.position - start.position)
-      state.column
-
-  traceM $ "Parsed: " <> pretty result
-  traceM $ "Remaining: " <> show end.substring
-  traceM $ "Column: " <> pretty column
-
-  let outOfRange = not $ inRange state.indentationRange state.column
-  when (nonSpace && outOfRange) $ do
-    traceM "Indentation failure"
-    lift $ SP.fail $ Array.fold
+  unless (inRange state.indentationRange column) do
+    void $ fail $ Array.fold
       [ "Invalid indentation "
       , show column
       , " (expected a value in the range "
@@ -162,53 +192,20 @@ liftParser nonSpace parser = do
       , pretty result
       ]
 
-  if nonSpace then do
-    put $ state
-      { column = column
-      , absolute = false
-      , indentationRange = state.column /\ state.column
-      }
-    traceM $ fold
-      [ "Indentation: "
-      , pretty state.indentationRange
-      , " => "
-      , pretty $ state.column /\ state.column
-      ]
-    traceM $ fold
-      [ "Absolute: "
-      , pretty state.absolute
-      , " => "
-      , pretty false
-      ]
-
-  else do
-    traceM $ "Indentation: " <> pretty state.indentationRange
-    put $ state { column = column }
-
-  traceM ""
+  put $ state
+    { absolute = false
+    , indentationRange = column /\ column
+    }
 
   pure result
 
--- | Lift a normal parser into one which traces indentation
-indented :: forall a. Debug a => SP.Parser a -> Parser a
-indented = liftParser true
-
--- | Lift a whitespace parser into one which traces indentation
-liftUnchecked :: forall a. Debug a => SP.Parser a -> Parser a
-liftUnchecked = liftParser false
-
-runParser :: forall a. Parser a -> String -> Either SP.ParseError a
-runParser p input =
-  flip
-    SP.runParser
-    input $
-    evalStateT p
-      { indentationRange: bottom /\ top
-      , column: 0
-      , absolute: false
-      , relation: IAny
-      }
-
-derive instance Generic IndentationRelation _
-instance Debug IndentationRelation where
-  debug = genericDebug
+runParser
+  :: forall a
+   . String
+  -> Parser a
+  -> Either ParserError a
+runParser = runParserImpl (/\) Right Left
+  { indentationRange: bottom /\ top
+  , absolute: false
+  , relation: IAny
+  }

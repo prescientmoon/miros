@@ -1,3 +1,7 @@
-block
-   1234
-   2334
+$|2{@test,@best @heist,@basket}
+$|3{
+   @test,
+   @best,
+   @heist,
+   @basket
+}

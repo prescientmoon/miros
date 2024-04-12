@@ -10,7 +10,7 @@ import Node.FS.Aff (readTextFile)
 main :: Effect Unit
 main = launchAff_ do
   file <- readTextFile UTF8 "./input"
-  case runParser parser file of
+  case runParser file parser of
     Left err -> logPretty err
     Right result -> do
       logPretty result

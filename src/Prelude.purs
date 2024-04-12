@@ -16,6 +16,8 @@ module Miros.Prelude
   , module Data.Generic.Rep
   , module Debug
   , module Control.Alternative
+  , module Control.Lazy
+  , module Partial.Unsafe
   , unimplemented
   , logPretty
   , traceMPretty
@@ -43,6 +45,8 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (clear, group, groupCollapsed, groupEnd, grouped, info, infoShow, log, logShow, time, timeEnd, timeLog, warn, warnShow)
 import Effect.Exception.Unsafe (unsafeThrow)
 import Prim.TypeError (class Warn, Text)
+import Control.Lazy (class Lazy, defer, fix)
+import Partial.Unsafe (unsafePartial)
 
 unimplemented :: forall a. Warn (Text "unimplemenet") => a
 unimplemented = unsafeThrow "unimplemented"
