@@ -1,0 +1,6 @@
+block a !b
+  block !c !d
+    block !e f
+  block g h
+    block i j
+block k l

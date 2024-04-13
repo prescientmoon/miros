@@ -1,0 +1,5 @@
+for @element <- @{@index:
+    one,
+    two,
+    three
+  }

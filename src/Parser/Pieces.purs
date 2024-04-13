@@ -21,14 +21,16 @@ module Miros.Parser.Pieces
   , expect
   , sepBy
   , regex
+  , string
   ) where
 
 import Miros.Prelude
 
+import Data.Array as Array
 import Data.Int as Int
 import Data.String.Regex as Regex
-import Miros.Parser.Lib as P
 import Miros.Parser.Debug as PD
+import Miros.Parser.Lib as P
 
 -- {{{ Single-token helpers
 expect :: P.Rune -> P.Parser Unit
@@ -151,6 +153,18 @@ nat = P.label "natural" do
     case Int.fromString string of
       Just num -> pure num
       Nothing -> P.fail $ "Invalid natural " <> string
+
+-- }}}
+-- {{{ Strings
+foreign import runes :: String -> Array P.Rune
+
+-- Similar to `expect`, but for an entire string
+string :: String -> P.Parser Unit
+string text = P.label ("expect " <> show text) do
+  let members = runes text
+  P.token $ P.nextMany (Array.length members) >>= case _ of
+    arr | arr == members -> pure unit
+    _ -> P.fail $ "Expected " <> show text
 
 -- }}}
 

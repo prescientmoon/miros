@@ -5,9 +5,10 @@ module Miros.Parser.Implementation
   , Trigger(..)
   , Snippet
   , Expr(..)
-  , Toplevel
+  , Toplevel(..)
   , parser
-  , multilineExpr
+  , parseToplevel
+  , parseMultilineExpression
   ) where
 
 import Miros.Prelude
@@ -55,7 +56,7 @@ data Expr
   | Newline
 
 data Toplevel
-  = Block (Array Toplevel)
+  = Block Block
   | For Name Expr
   | Snippet Snippet
 
@@ -76,11 +77,14 @@ parseTabstop = do
   index <- PP.digit
   pure $ TabStop index
 
-parseVariable :: P.Parser Expr
-parseVariable = do
+parseVariableName :: P.Parser String
+parseVariableName = do
   PP.expect "@"
   name <- PP.takeWhile1 "variable name" $ PP.regex "[a-zA-Z0-9]"
-  pure $ Var name
+  pure name
+
+parseVariable :: P.Parser Expr
+parseVariable = Var <$> parseVariableName
 
 parseCaptureGroupRef :: P.Parser Expr
 parseCaptureGroupRef = do
@@ -90,70 +94,73 @@ parseCaptureGroupRef = do
 
 -- }}}
 -- {{{ Single-child expressions
-childExpression :: P.Parser Expr
-childExpression = PP.eatEol >>=
-  if _ then P.agt multilineExpr
+parseChildExpression :: P.Parser Expr
+parseChildExpression = PP.eatEol >>=
+  if _ then P.agt parseMultilineExpression
   else expr
 
 -- {{{ Nonempty
 parseNonempty :: P.Parser Expr
-parseNonempty = P.label "nonempty expression" $ P.agt do
-  PP.expect "$"
-  PP.expect "?"
+parseNonempty = P.label "nonempty expression" do
+  PP.string "$?"
   index <- PP.digit
   PP.expect "{"
-  nested <- childExpression
+  nested <- parseChildExpression
   P.agte $ PP.expect "}"
   pure $ Nonempty index nested
 
 -- }}}
 -- {{{ Escape
 parseEscape :: P.Parser Expr
-parseEscape = P.label "escape expression" $ P.agt do
-  PP.expect "@"
-  PP.expect "^"
-  PP.expect "{"
-  nested <- childExpression
+parseEscape = P.label "escape expression" do
+  PP.string "@^{"
+  nested <- parseChildExpression
   P.agte $ PP.expect "}"
   pure $ Escape nested
 
 -- }}}
 -- }}}
 -- {{{ Multi-child expresions 
+parseChildExpressions :: String -> P.Parser (List Expr)
+parseChildExpressions name = P.label (name <> " expression body") do
+  let mkChild = P.label (name <> "choice expression child")
+  PP.eatEol >>=
+    if _ then
+      P.agt $ PP.sepBy "," $ mkChild $ P.absolute parseMultilineExpression
+    else
+      PP.sepBy "," $ mkChild expr
+
 -- {{{ Choice 
 parseChoice :: P.Parser Expr
-parseChoice = P.label "choice expression" $ P.agt PD.do
-  PP.expect "$"
-  PP.expect "|"
+parseChoice = P.label "choice expression" $ PD.do
+  PP.string "$|"
   index <- PP.digit
   PP.expect "{"
-  children <- P.label "choice expression body" do
-    let mkChild = P.label "choice expression child"
-    PP.eatEol >>=
-      if _ then
-        P.agt $ PP.sepBy "," $ mkChild $ P.absolute multilineExpr
-      else
-        PP.sepBy "," $ mkChild expr
+  children <- parseChildExpressions "choice"
   P.agte $ PP.expect "}"
   pure $ Choice index $ Array.fromFoldable children
 
 -- }}}
 -- {{{ Array (indices)
 parseArray :: P.Parser Expr
-parseArray = do
-  PP.expect "@"
-  PP.expect "{"
-  head <- expr
-  contents <- P.peek >>= \c -> case head, c of
-    Var name, Just ":" -> do
-      void P.next
-      children <- PP.sepBy "," expr
-      pure $ ArrayIndex name $ Array.fromFoldable children
-    _, Just "," -> do
-      void P.next
-      tail <- PP.sepBy "," expr
-      pure $ Array $ Array.fromFoldable $ head : tail
-    _, _ -> pure $ Array [ head ]
+parseArray = P.label "array expression" PD.do
+  PP.string "@{"
+  contents <- PP.isEol >>=
+    if _ then do
+      elements <- parseChildExpressions "array"
+      pure $ Array $ Array.fromFoldable elements
+    else do
+      head <- expr
+      P.peek >>= \c -> case head, c of
+        Var name, Just ":" -> do
+          void P.next
+          elements <- parseChildExpressions "array index"
+          pure $ ArrayIndex name $ Array.fromFoldable elements
+        _, Just "," -> do
+          void P.next
+          tail <- PP.sepBy "," expr
+          pure $ Array $ Array.fromFoldable $ head : tail
+        _, _ -> pure $ Array [ head ]
   PP.expect "}"
   pure contents
 
@@ -194,8 +201,8 @@ expr = P.label "expression" do
 
 -- }}}
 -- {{{ Multline expressions
-multilineExpr :: P.Parser Expr
-multilineExpr = P.label "multiline expression" do
+parseMultilineExpression :: P.Parser Expr
+parseMultilineExpression = P.label "multiline expression" do
   loop Nothing
     <#> Array.fromFoldable
     <#> Array.dropWhile ((==) Empty)
@@ -225,12 +232,77 @@ multilineExpr = P.label "multiline expression" do
         pure $ List.fromFoldable result
 
 -- }}}
+-- {{{ Toplevel statemenets 
+parseFor :: P.Parser Toplevel
+parseFor = do
+  PP.string "for"
+  name <- PP.reqIws *> parseVariableName
+  PP.reqIws *> PP.string "<-"
+  value <- PP.reqIws *> expr
+  pure $ For name value
+
+parseBlock :: P.Parser Toplevel
+parseBlock = do
+  PP.string "block"
+  modifiers <- PP.many $ PP.optIws *> modifier
+  elements <- P.agt parseBlockElements
+  let partitions = Array.partition fst $ Array.fromFoldable modifiers
+  pure $ Block
+    { elements
+    , modifiers:
+        { positive: partitions.yes <#> snd
+        , negative: partitions.no <#> snd
+        }
+    }
+  where
+  modifier = P.label "modifier" do
+    PP.eatEol >>=
+      if _ then pure Nothing
+      else
+        P.token $ Just <$> do
+          P.peek >>= case _ of
+            Just "!" -> do
+              void P.next
+              name <- modifierName
+              pure $ false /\ name
+            _ -> do
+              name <- modifierName
+              pure $ true /\ name
+
+  modifierName =
+    PP.takeWhile1 "block modifier name" $ PP.regex "[a-zA-Z0-9]"
+
+parseBlockElement :: P.Parser (Maybe Toplevel)
+parseBlockElement = P.label "block element" do
+  P.localPeek >>= case _ of
+    Just "f" -> Just <$> parseFor
+    Just "b" -> Just <$> parseBlock
+    _ -> pure Nothing
+
+parseBlockElements :: P.Parser (Array Toplevel)
+parseBlockElements = defer \_ -> P.label "block elements" do
+  elements <- PP.many (PP.optWs *> P.absolute parseBlockElement)
+  pure $ Array.fromFoldable elements
+
+parseToplevel :: P.Parser (Array Toplevel)
+parseToplevel = P.label "toplevel" do
+  P.withRelation (P.IConst 1)
+    $ P.absolute
+    $ parseBlockElements
+
+-- }}}
 
 parser :: P.Parser Expr
-parser = multilineExpr
+parser = parseMultilineExpression
 
 derive instance Generic Expr _
 instance Debug Expr where
   debug e = genericDebug e
 
 derive instance Eq Expr
+
+derive instance Generic Toplevel _
+instance Debug Toplevel where
+  debug e = genericDebug e
+
+derive instance Eq Toplevel
