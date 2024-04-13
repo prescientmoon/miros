@@ -5,6 +5,8 @@ module Miros.Parser.Lib
   , IndentationRange
   , IndentationRelation(..)
   , Rune
+  , getColumn
+  , getLine
   , absolute
   , withRelation
   , agt
@@ -16,7 +18,10 @@ module Miros.Parser.Lib
   , next
   , peekMany
   , nextMany
+  , localPeek
   , fail
+  , label
+  , log
   ) where
 
 import Miros.Prelude
@@ -43,6 +48,7 @@ type Location = Int /\ Int
 type ParserError =
   { message :: String
   , location :: Location
+  , context :: Array String
   }
 
 -- Full unicode char
@@ -64,11 +70,14 @@ foreign import peekMany :: Int -> Parser (Array Rune)
 foreign import getState :: Parser ParserState
 foreign import setState :: ParserState -> Parser Unit
 foreign import fail :: forall a. String -> Parser a
+foreign import labelImpl :: forall a. String -> Parser a -> Parser a
+foreign import log :: String -> Parser Unit
 foreign import runParserImpl
   :: forall a r
    . (forall x y. x -> y -> x /\ y)
   -> (a -> r)
   -> (ParserError -> r)
+  -> Boolean
   -> ParserState
   -> String
   -> Parser a
@@ -131,6 +140,14 @@ unapplyRelation
   IConst i -> initial
   IAny -> initial
 
+relationSymbol :: IndentationRelation -> String
+relationSymbol = case _ of
+  IGte -> "≥"
+  IGt -> ">"
+  IEq -> "="
+  IAny -> "⊤"
+  IConst i -> "= " <> show i
+
 -- }}}
 
 peek :: Parser (Maybe Rune)
@@ -139,8 +156,15 @@ peek = map Array.head (peekMany 1)
 next :: Parser (Maybe Rune)
 next = map Array.head (nextMany 1)
 
+label :: forall a. String -> Parser a -> Parser a
+label text = labelImpl $ "+ " <> text
+
 absolute :: forall a. Parser a -> Parser a
-absolute p = modify_ _ { absolute = true } *> p
+absolute p = do
+  modify_ _ { absolute = true }
+  result <- labelImpl "> absolute" p
+  modify_ _ { absolute = false }
+  pure result
 
 agt :: forall a. Parser a -> Parser a
 agt = absolute >>> withRelation IGt
@@ -153,23 +177,34 @@ withRelation relation parser = do
   initial <- get
   if initial.absolute then parser
   else do
-    put $ initial
-      { relation = relation
-      , indentationRange =
-          applyRelation
-            relation
-            initial.indentationRange
-      }
-    result <- parser
+    result <- labelImpl ("> apply (" <> relationSymbol relation <> ")") do
+      let
+        initialRange = applyRelation
+          relation
+          initial.indentationRange
+
+      log $ "Indentation " <> pretty initialRange
+      put $ initial
+        { relation = relation
+        , indentationRange = initialRange
+        }
+      parser
+
     state <- get
+
+    let
+      finalRange =
+        unapplyRelation
+          relation
+          initial.indentationRange
+          state.indentationRange
+
+    log $ "Indentation " <> pretty finalRange
     put $ state
       { relation = initial.relation
-      , indentationRange =
-          unapplyRelation
-            relation
-            initial.indentationRange
-            state.indentationRange
+      , indentationRange = finalRange
       }
+
     pure result
 
 token :: forall a. Debug a => Parser a -> Parser a
@@ -197,14 +232,28 @@ indented parser = do
     , indentationRange = column /\ column
     }
 
+  log $ "Indentation " <> pretty column
+
   pure result
+
+-- | Similar to `peek`, except returns `Nothing` if the next token would violate
+-- | the local indentation rules.
+localPeek :: Parser (Maybe Rune)
+localPeek = do
+  column <- getColumn
+  state <- get
+
+  if inRange state.indentationRange column then
+    peek
+  else
+    pure Nothing
 
 runParser
   :: forall a
    . String
   -> Parser a
   -> Either ParserError a
-runParser = runParserImpl (/\) Right Left
+runParser = runParserImpl (/\) Right Left false
   { indentationRange: bottom /\ top
   , absolute: false
   , relation: IAny

@@ -15,7 +15,8 @@ package:
     - tuples
   test:
     main: Test.Main
-    dependencies: []
+    dependencies:
+      - spec
 workspace:
   package_set:
     registry: 50.3.0

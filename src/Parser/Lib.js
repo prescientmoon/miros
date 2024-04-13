@@ -1,5 +1,5 @@
 class InputStream {
-  constructor(text, indentationState) {
+  constructor(text, indentationState, logging) {
     this.line = 1;
     this.column = 1;
     this.text = text;
@@ -8,6 +8,8 @@ class InputStream {
     this.error = null;
     this.iterator = text[Symbol.iterator]();
     this.indentationState = indentationState;
+    this.context = [];
+    this.logging = logging;
   }
 
   reveal(amount) {
@@ -81,14 +83,51 @@ export const fail = (error) => (stream) => {
   stream.error = error;
 };
 
+export const labelImpl = (text) => (f) => (stream) => {
+  if (!stream.error) {
+    log(text, false)(stream);
+    stream.context.push(text);
+    const result = f(stream);
+    if (!stream.error) {
+      stream.context.pop();
+      return result;
+    }
+  }
+};
+
+export const log =
+  (text, deco = true) =>
+  (stream) => {
+    if (!stream.logging || stream.error) return;
+
+    let leading = "  ".repeat(stream.context.length);
+
+    const final = text
+      .split("\n")
+      .map((line, i) => {
+        const decoString = deco ? (i === 0 ? "| " : "  ") : "";
+        return `${leading}${decoString}${line}`;
+      })
+      .join("\n");
+
+    console.log(final);
+  };
+
 export const runParserImpl =
-  (tuple) => (onSuccess) => (onFailure) => (state) => (text) => (f) => {
-    const stream = new InputStream(text, state);
+  (tuple) =>
+  (onSuccess) =>
+  (onFailure) =>
+  (logging) =>
+  (state) =>
+  (text) =>
+  (f) => {
+    const stream = new InputStream(text, state, logging);
     const result = f(stream);
     if (stream.error) {
       return onFailure({
         message: stream.error,
         location: tuple(stream.line)(stream.column),
+        context: stream.context,
       });
     } else {
       return onSuccess(result);
