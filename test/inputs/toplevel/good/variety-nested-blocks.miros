@@ -1,18 +1,18 @@
-for @a <- @{one,two,three}
-for @b <- @{@a:$1,2,@3}
+for a <- @⟨one,two,three⟩
+for b <- @⟨@a:$1,2,@3⟩
 block auto !math
-  for @c <- @{
+  for c <- @⟨
       @a,
       @b
-    }
+    ⟩
 
-  for @d <- @{@c:
-      @{},
-      @{@b:}
-    }
+  for d <- @⟨@c:
+      @⟨⟩,
+      @⟨@b:⟩
+    ⟩
 
   block !auto start
     block
-      for @d <- notanarray
+      for d <- notanarray
 
-for @i <- @{}
+for i <- @⟨⟩

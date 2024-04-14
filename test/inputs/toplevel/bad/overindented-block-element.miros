@@ -1,3 +1,3 @@
 block
-  for @i <- @{}
-   for @j <- @{}
+  for i <- @⟨⟩
+   for j <- @⟨⟩

@@ -85,7 +85,7 @@ export const fail = (error) => (stream) => {
 
 export const labelImpl = (text) => (f) => (stream) => {
   if (!stream.error) {
-    log(text, false)(stream);
+    localLog(text, false)(stream);
     stream.context.push(text);
     const result = f(stream);
     if (!stream.error) {
@@ -95,7 +95,7 @@ export const labelImpl = (text) => (f) => (stream) => {
   }
 };
 
-export const log =
+export const localLog =
   (text, deco = true) =>
   (stream) => {
     if (!stream.logging || stream.error) return;

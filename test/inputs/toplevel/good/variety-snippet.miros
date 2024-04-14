@@ -1,0 +1,13 @@
+string first
+  name first
+  desc this is the first example snippet
+  snip single line snippet
+
+block auto
+  pattern second
+    snip
+      multi
+        line
+      snippet $1
+    desc this is the first example snippet
+    name second

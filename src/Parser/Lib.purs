@@ -21,7 +21,7 @@ module Miros.Parser.Lib
   , localPeek
   , fail
   , label
-  , log
+  , localLog
   ) where
 
 import Miros.Prelude
@@ -71,7 +71,7 @@ foreign import getState :: Parser ParserState
 foreign import setState :: ParserState -> Parser Unit
 foreign import fail :: forall a. String -> Parser a
 foreign import labelImpl :: forall a. String -> Parser a -> Parser a
-foreign import log :: String -> Parser Unit
+foreign import localLog :: String -> Parser Unit
 foreign import runParserImpl
   :: forall a r
    . (forall x y. x -> y -> x /\ y)
@@ -109,6 +109,9 @@ instance MonadState ParserState Parser where
 
 instance Lazy (Parser a) where
   defer = deferImpl
+
+instance MonadThrow String Parser where
+  throwError = fail
 
 -- }}}
 -- {{{ Basic pure functions 
@@ -183,7 +186,7 @@ withRelation relation parser = do
           relation
           initial.indentationRange
 
-      log $ "Indentation " <> pretty initialRange
+      localLog $ "Indentation " <> pretty initialRange
       put $ initial
         { relation = relation
         , indentationRange = initialRange
@@ -199,7 +202,7 @@ withRelation relation parser = do
           initial.indentationRange
           state.indentationRange
 
-    log $ "Indentation " <> pretty finalRange
+    localLog $ "Indentation " <> pretty finalRange
     put $ state
       { relation = initial.relation
       , indentationRange = finalRange
@@ -232,7 +235,7 @@ indented parser = do
     , indentationRange = column /\ column
     }
 
-  log $ "Indentation " <> pretty column
+  localLog $ "Indentation " <> pretty column
 
   pure result
 

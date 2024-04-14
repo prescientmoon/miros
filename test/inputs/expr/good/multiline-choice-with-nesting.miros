@@ -1,4 +1,4 @@
-$|4{
+$|4⟨
   one,
   two
     three
@@ -6,11 +6,11 @@ $|4{
   @fourrrr
    ,
   $5   ,
-  $|2{unu, doi, trei},
-  @^{$|1{
+  $|2⟨unu, doi, trei⟩,
+  @^⟨$|1⟨
       first,
       second
-     }}
+     ⟩⟩
 
 
-}
+⟩

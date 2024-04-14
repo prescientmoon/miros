@@ -2,7 +2,7 @@ module Test.Main where
 
 import Miros.Prelude
 
-import Miros.Parser.Implementation (parseToplevel, parseMultilineExpression)
+import Miros.Parser.Implementation (ExprContext(..), parseMultilineExpression, parseToplevel)
 import Miros.Parser.Lib (Parser, runParser)
 import Miros.Parser.Pieces (eof, optWs)
 import Node.Encoding (Encoding(..))
@@ -38,8 +38,8 @@ noneShouldParse path parser = do
 
 main :: Effect Unit
 main = launchAff_ do
-  shouldParseExpressions <- shouldAllParse "./test/inputs/expr/good" parseMultilineExpression
-  shouldntParseExpressions <- noneShouldParse "./test/inputs/expr/bad" parseMultilineExpression
+  shouldParseExpressions <- shouldAllParse "./test/inputs/expr/good" $ parseMultilineExpression None
+  shouldntParseExpressions <- noneShouldParse "./test/inputs/expr/bad" $ parseMultilineExpression None
   shouldParseToplevel <- shouldAllParse "./test/inputs/toplevel/good" parseToplevel
   shouldntParseToplevel <- noneShouldParse "./test/inputs/toplevel/bad" parseToplevel
   runSpec [ consoleReporter ] do

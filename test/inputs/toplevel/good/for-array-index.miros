@@ -1,1 +1,1 @@
-for @index <- @{@element:$1,@2,3}
+for index <- @⟨@element:$1,@2,3⟩

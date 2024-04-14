@@ -1,5 +1,5 @@
-for @element <- @{
+for element <- @⟨
   one,
   two,
   three
-}
+⟩

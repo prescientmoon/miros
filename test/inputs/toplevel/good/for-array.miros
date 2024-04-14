@@ -1,1 +1,1 @@
-for @element <- @{one,two,three}
+for element <- @⟨one,two,three⟩

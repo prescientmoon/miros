@@ -2,7 +2,7 @@ module Main where
 
 import Miros.Prelude
 
-import Miros.Parser.Implementation (parseToplevel, parser)
+import Miros.Parser.Implementation (parseToplevel)
 import Miros.Parser.Lib (runParser)
 import Miros.Parser.Pieces (eof, optWs)
 import Node.Encoding (Encoding(..))

@@ -18,6 +18,7 @@ module Miros.Prelude
   , module Control.Alternative
   , module Control.Lazy
   , module Partial.Unsafe
+  , module Control.Monad.Error.Class
   , unimplemented
   , logPretty
   , traceMPretty
@@ -47,6 +48,7 @@ import Effect.Exception.Unsafe (unsafeThrow)
 import Prim.TypeError (class Warn, Text)
 import Control.Lazy (class Lazy, defer, fix)
 import Partial.Unsafe (unsafePartial)
+import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, catchJust, liftEither, liftMaybe, throwError, try, withResource)
 
 unimplemented :: forall a. Warn (Text "unimplemenet") => a
 unimplemented = unsafeThrow "unimplemented"

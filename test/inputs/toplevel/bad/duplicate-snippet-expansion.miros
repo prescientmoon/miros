@@ -1,0 +1,4 @@
+string test
+  snip first
+  name this will fail
+  snip second
