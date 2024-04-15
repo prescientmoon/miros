@@ -8,11 +8,20 @@ import Miros.Prelude
 
 import Data.Array as Array
 import Data.List as List
-import Miros.Ast (Expr(..), Snippet, SnippetCommand(..), Toplevel(..), Trigger(..), makeSnippet)
 import Miros.Helpers.Array as Miros.Array
 import Miros.Parser.Debug as PD
 import Miros.Parser.Lib as P
 import Miros.Parser.Pieces as PP
+import Miros.Ast
+  ( Expr(..)
+  , Scope
+  , Snippet
+  , SnippetCommand(..)
+  , Toplevel(..)
+  , Trigger
+  , TriggerKind(..)
+  , makeSnippet
+  )
 
 data ExprContext = ArrayHead | ArrayTail | None
 
@@ -227,14 +236,14 @@ parseSnippetBody trigger = P.label "snippet body" do
 
 parseStringSnippet :: P.Parser Toplevel
 parseStringSnippet = do
-  mkTrigger <- P.label "snippet trigger kind" do
+  triggerKind <- P.label "snippet trigger kind" do
     P.localPeek >>= case _ of
       Just "s" -> PP.string "string" $> String
       Just "p" -> PP.string "pattern" $> Pattern
       _ -> P.fail "invalid trigger"
 
   triggerExpr <- P.label "snippet trigger" $ PP.reqIws *> parseExpression None
-  snip <- P.agt $ parseSnippetBody $ mkTrigger triggerExpr
+  snip <- P.agt $ parseSnippetBody $ triggerKind /\ triggerExpr
   pure $ Snippet snip
 
 parseBlock :: P.Parser Toplevel
@@ -277,12 +286,12 @@ parseBlockElement = P.label "block element" do
     Just "p" -> Just <$> parseStringSnippet
     _ -> pure Nothing
 
-parseBlockElements :: P.Parser (Array Toplevel)
+parseBlockElements :: P.Parser Scope
 parseBlockElements = defer \_ -> P.label "block elements" do
   elements <- PP.many (PP.optWs *> P.absolute parseBlockElement)
   pure $ Array.fromFoldable elements
 
-parseToplevel :: P.Parser (Array Toplevel)
+parseToplevel :: P.Parser Scope
 parseToplevel = P.label "toplevel" do
   P.withRelation (P.IConst 1)
     $ P.absolute

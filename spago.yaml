@@ -2,6 +2,7 @@ package:
   name: miros
   dependencies:
     - aff
+    - argparse-basic
     - console
     - debug
     - debugged
@@ -9,6 +10,7 @@ package:
     - either
     - maybe
     - node-fs
+    - node-process
     - prelude
     - string-parsers
     - transformers

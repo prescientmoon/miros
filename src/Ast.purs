@@ -6,18 +6,22 @@ import Miros.Prelude
 type Name = String
 type Index = Int
 
-type Block =
-  { elements :: Array Toplevel
-  , modifiers ::
-      { positive :: Array String
-      , negative :: Array String
-      }
+type Modifiers =
+  { positive :: Array String
+  , negative :: Array String
   }
 
-data Trigger = String Expr | Pattern Expr
+type Block =
+  { elements :: Scope
+  , modifiers :: Modifiers
+  }
+
+data TriggerKind = String | Pattern
+type Trigger = TriggerKind /\ Expr
 
 type Snippet =
-  { trigger :: Trigger
+  { triggerKind :: TriggerKind
+  , trigger :: Expr
   , expansion :: Expr
   , name :: Expr
   , description :: Maybe Expr
@@ -47,6 +51,8 @@ data Toplevel
   | For Name Expr
   | Snippet Snippet
 
+type Scope = Array Toplevel
+
 -- }}}
 -- {{{ Typeclass instance
 derive instance Eq Expr
@@ -54,9 +60,9 @@ derive instance Generic Expr _
 instance Debug Expr where
   debug e = genericDebug e
 
-derive instance Eq Trigger
-derive instance Generic Trigger _
-instance Debug Trigger where
+derive instance Eq TriggerKind
+derive instance Generic TriggerKind _
+instance Debug TriggerKind where
   debug e = genericDebug e
 
 derive instance Eq Toplevel
@@ -78,14 +84,15 @@ type IncompleteSnippet =
   }
 
 makeSnippet :: Trigger -> List SnippetCommand -> Either String Snippet
-makeSnippet trigger commands = do
+makeSnippet (triggerKind /\ trigger) commands = do
   let initial = { expansion: Nothing, name: Nothing, description: Nothing }
   incomplete <- foldM go initial commands
   expansion <- note "Snippet expansion missing" incomplete.expansion
   pure $
-    { trigger
+    { triggerKind
+    , trigger
     , expansion
-    , name: fromMaybe expansion incomplete.name
+    , name: fromMaybe trigger incomplete.name
     , description: incomplete.description
     }
   where

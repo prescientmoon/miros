@@ -4,6 +4,7 @@ workspace:
       path: ./
       dependencies:
         - aff
+        - argparse-basic
         - console
         - debug
         - debugged
@@ -11,6 +12,7 @@ workspace:
         - either
         - maybe
         - node-fs
+        - node-process
         - prelude
         - string-parsers
         - transformers
@@ -20,6 +22,7 @@ workspace:
       build_plan:
         - aff
         - ansi
+        - argparse-basic
         - arraybuffer-types
         - arrays
         - avar
@@ -42,6 +45,7 @@ workspace:
         - fixed-points
         - foldable-traversable
         - foreign
+        - foreign-object
         - fork
         - free
         - functions
@@ -60,6 +64,7 @@ workspace:
         - node-event-emitter
         - node-fs
         - node-path
+        - node-process
         - node-streams
         - nonempty
         - now
@@ -70,6 +75,7 @@ workspace:
         - parallel
         - partial
         - pipes
+        - posix-types
         - prelude
         - profunctor
         - record
@@ -603,6 +609,26 @@ packages:
       - foldable-traversable
       - lists
       - strings
+  argparse-basic:
+    type: registry
+    version: 2.0.0
+    integrity: sha256-3Pp8MDfRL2oeBdfxXIUVJBdhGniaahw2UOG4QmHPm58=
+    dependencies:
+      - arrays
+      - bifunctors
+      - control
+      - either
+      - foldable-traversable
+      - integers
+      - lists
+      - maybe
+      - newtype
+      - numbers
+      - prelude
+      - record
+      - strings
+      - tuples
+      - unfoldable
   arraybuffer-types:
     type: registry
     version: 3.0.2
@@ -850,6 +876,23 @@ packages:
       - prelude
       - strings
       - transformers
+  foreign-object:
+    type: registry
+    version: 4.1.0
+    integrity: sha256-q24okj6mT+yGHYQ+ei/pYPj5ih6sTbu7eDv/WU56JVo=
+    dependencies:
+      - arrays
+      - foldable-traversable
+      - functions
+      - gen
+      - lists
+      - maybe
+      - prelude
+      - st
+      - tailrec
+      - tuples
+      - typelevel-prelude
+      - unfoldable
   fork:
     type: registry
     version: 6.0.0
@@ -1050,6 +1093,20 @@ packages:
     integrity: sha256-pd82nQ+2l5UThzaxPdKttgDt7xlsgIDLpPG0yxDEdyE=
     dependencies:
       - effect
+  node-process:
+    type: registry
+    version: 11.2.0
+    integrity: sha256-+2MQDYChjGbVbapCyJtuWYwD41jk+BntF/kcOTKBMVs=
+    dependencies:
+      - effect
+      - foreign
+      - foreign-object
+      - maybe
+      - node-event-emitter
+      - node-streams
+      - posix-types
+      - prelude
+      - unsafe-coerce
   node-streams:
     type: registry
     version: 9.0.0
@@ -1152,6 +1209,13 @@ packages:
       - tailrec
       - transformers
       - tuples
+  posix-types:
+    type: registry
+    version: 6.0.0
+    integrity: sha256-ZfFz8RR1lee/o/Prccyeut3Q+9tYd08mlR72sIh6GzA=
+    dependencies:
+      - maybe
+      - prelude
   prelude:
     type: registry
     version: 6.0.1
