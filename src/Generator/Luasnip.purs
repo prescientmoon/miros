@@ -177,7 +177,7 @@ chunkToLua offset = case _ of
     <$> String.split (String.Pattern "\n") text
   EX.TabStop i -> mirrorOnReuse (i - offset) $
     luaCall "i" [ show $ i - offset ]
-  EX.CaptureGroupRef i -> errorOnReuse (i - offset) $
+  EX.CaptureGroupRef i -> pure $
     luaCall "f"
       [ "function(_, snip) return snip.captures[" <> show (i + 1) <> "] end"
       ]
