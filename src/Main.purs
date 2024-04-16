@@ -1,4 +1,4 @@
-module Main where
+    module Main where
 
 import Miros.Prelude
 
@@ -18,7 +18,7 @@ import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile, readdir, writeTextFile)
 import Node.Process (argv, setExitCode)
 
--- {{{ Basic CLI types 
+-- {{{ Basic CLI types
 data Generator = Luasnip LuasnipGenConfig
 
 data Command = Generate
@@ -86,7 +86,7 @@ app arguments = do
           let
             outputExtension = case config.generator of
               Luasnip _ -> "lua"
-            output = String.replace (Pattern ".miros")
+            output = String.replace (String.Pattern ".miros")
               (Replacement $ "." <> outputExtension)
               input
 
@@ -117,7 +117,7 @@ instance Debug Command where
   debug = genericDebug
 
 -- }}}
--- {{{ Some FFI 
+-- {{{ Some FFI
 foreign import runCommandImpl :: String -> EffectFnAff String
 
 runCommand :: String -> Aff String

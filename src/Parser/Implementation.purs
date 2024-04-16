@@ -136,7 +136,7 @@ parseExpression :: ExprContext -> P.Parser Expr
 parseExpression context = P.label "expression" do
   PP.many chunk <#> concatExpressions
   where
-  lit l = commit $ P.token $ P.next $> Literal l
+  lit i l = commit $ P.token $ P.nextMany i $> Literal l
   commit parser = Just <$> parser
 
   chunk = P.label "expression chunk" do
@@ -145,29 +145,28 @@ parseExpression context = P.label "expression" do
       "$" : "|" : _ -> commit parseChoice
       "$" : n : _
         | PP.isDigit n -> commit parseTabstop
-        | otherwise -> lit "$"
+        | otherwise -> lit 1 "$"
       "@" : "⟨" : _ -> commit parseArray
       "@" : "^" : _ -> commit parseEscape
       "@" : n : _
         | PP.isDigit n -> commit parseCaptureGroupRef
         | otherwise -> commit parseVariable
-      "\\" : "," : _ -> P.next *> lit ","
-      "\\" : ":" : _ -> P.next *> lit ":"
-      "\\" : "⟩" : _ -> P.next *> lit "⟩"
-      "\\" : "⟨" : _ -> P.next *> lit "⟨"
-      "\\" : "@" : _ -> P.next *> lit "@"
-      "\\" : "$" : _ -> P.next *> lit "$"
-      "\\" : "\\" : _ -> P.next *> lit "\\"
-      "\\" : _ -> lit "\\"
-      "⟨" : _ -> lit "⟨"
+      "\\" : "," : _ -> lit 2 ","
+      "\\" : ":" : _ -> lit 2 ":"
+      "\\" : "⟩" : _ -> lit 2 "⟩"
+      "\\" : "⟨" : _ -> lit 2 "⟨"
+      "\\" : "@" : _ -> lit 2 "@"
+      "\\" : "$" : _ -> lit 2 "$"
+      "\\" : "\\" : _ -> lit 2 "\\"
+      "\\" : _ -> lit 1 "\\"
       "⟩" : _ -> pure Nothing
       "\n" : _ -> pure Nothing
       "," : _
         | context == ArrayTail || context == ArrayHead -> pure Nothing
-        | otherwise -> lit ","
+        | otherwise -> lit 1 ","
       ":" : _
         | context == ArrayHead -> pure Nothing
-        | otherwise -> lit ":"
+        | otherwise -> lit 1 ":"
       Nil -> pure Nothing
       _ -> commit $ P.token do
         s <- PP.takeWhile $ flip Array.notElem [ "\\", ",", "@", "⟩", "$", ":", "\n" ]

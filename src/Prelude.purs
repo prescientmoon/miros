@@ -57,7 +57,7 @@ import Data.Int (Parity(..), Radix, base36, binary, decimal, even, hexadecimal, 
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, fromMaybe', isJust, isNothing, maybe, maybe', optional)
 import Data.Newtype (class Newtype, ala, alaF, collect, over, over2, overF, overF2, un, under, under2, underF, underF2, unwrap, wrap)
-import Data.String (CodePoint, Pattern(..), Replacement(..), joinWith)
+import Data.String (CodePoint, Replacement(..), joinWith)
 import Data.String as String
 import Data.Traversable (class Foldable, class Traversable, Accum, all, and, any, elem, find, fold, foldMap, foldMapDefaultL, foldMapDefaultR, foldl, foldlDefault, foldr, foldrDefault, for, for_, intercalate, mapAccumL, mapAccumR, maximum, maximumBy, minimum, minimumBy, notElem, oneOf, or, scanl, scanr, sequence, sequenceDefault, sequence_, sum, traverse, traverseDefault, traverse_)
 import Data.Tuple (Tuple(..), curry, fst, snd, swap, uncurry)
