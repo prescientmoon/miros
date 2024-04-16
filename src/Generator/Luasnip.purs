@@ -67,7 +67,9 @@ generateLuasnipSnippet :: NormalizedSnippet -> Either String String
 generateLuasnipSnippet snip = do
   let
     handleError err = fold
-      [ "While generating luasnip code for snippet " <> snip.name
+      [ "While generating luasnip code for snippet "
+      , snip.name
+      , ":\n"
       , indentString 2 err
       ]
 
@@ -183,7 +185,7 @@ chunkToLua offset = case _ of
       luaCall "c" [ show $ i - offset, luaArray luaOptions ]
   EX.Nonempty i inner
     | [ EX.Literal lit ] <- EX.chunks inner ->
-        errorOnReuse (i - offset) $ luaCall "n"
+        pure $ luaCall "n"
           [ show $ i - offset
           , luaString lit
           , luaString ""
