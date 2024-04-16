@@ -135,7 +135,7 @@ mirrorOnReuse i default = do
     when (i == 0) do
       throwError "Cannot use more than one final tabstop"
 
-    pure $ luaCall "l" [ "l._" <> show i ]
+    pure $ luaCall "l" [ "l._" <> show i, show i ]
   else do
     modify_ _ { createdTabstops = HS.insert i created }
     pure default
