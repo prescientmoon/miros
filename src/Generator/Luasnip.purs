@@ -68,7 +68,7 @@ generateLuasnipSnippet snip = do
   let
     handleError err = fold
       [ "While generating luasnip code for snippet " <> snip.name
-      , indentString 2 snip.name
+      , indentString 2 err
       ]
 
   snippetTable <- lmap handleError $ expand snip.expansion
