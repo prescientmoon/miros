@@ -88,6 +88,7 @@ generateLuasnipSnippet snip = do
     , descriptionProp
     , trigEngineProp
     , snippetProp
+    , wordTrigProp
     , conditionProp
     ]
 
@@ -100,13 +101,18 @@ generateLuasnipSnippet snip = do
   snippetProp = case HM.lookup "auto" snip.modifiers of
     Just true -> [ "snippetType" /\ luaString "autosnippet" ]
     _ -> []
+  wordTrigProp = case HM.lookup "word" snip.modifiers of
+    Just true -> [ "wordTrig" /\ "true" ]
+    _ -> []
   conditionProp =
     if Array.null conditionModifiers then
       []
     else
       [ "condition" /\ String.joinWith " + " conditions ]
     where
-    conditionModifiers = HM.toArrayBy (/\) $ HM.delete "auto" snip.modifiers
+    conditionModifiers =
+      Array.filter (fst >>> flip Array.notElem [ "auto", "word" ])
+        $ HM.toArrayBy (/\) snip.modifiers
     { yes, no } = Array.partition snd conditionModifiers
     mkCondition = fst >>> case _ of
       "start" -> "conditions.line_begin"
