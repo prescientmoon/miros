@@ -1,4 +1,4 @@
-    module Main where
+module Main where
 
 import Miros.Prelude
 
@@ -81,7 +81,7 @@ app arguments = do
               liftEither $ generateLuasnipFile luasnipConfig compiled
 
           void $ liftAff $ runCommand $ "mkdir -p " <> config.output
-          log $ "Generated " <> show (Array.length compiled) <> " snippets 🚀 for " <> input
+          log $ "🚀 Generated " <> show (Array.length compiled) <> " snippets for " <> input
 
           let
             outputExtension = case config.generator of
