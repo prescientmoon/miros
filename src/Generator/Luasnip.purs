@@ -3,6 +3,7 @@ module Miros.Generator.Luasnip (LuasnipGenConfig, generateLuasnipFile) where
 import Miros.Prelude
 
 import Data.Array as Array
+import Data.Bifunctor (lmap)
 import Data.HashMap as HM
 import Data.HashSet as HS
 import Data.String as String
@@ -64,11 +65,19 @@ generateLuasnipFile config snippets = do
 
 generateLuasnipSnippet :: NormalizedSnippet -> Either String String
 generateLuasnipSnippet snip = do
-  snippetTable <- expand snip.expansion
+  let
+    handleError err = fold
+      [ "While generating luasnip code for snippet " <> snip.name
+      , indentString 2 snip.name
+      ]
+
+  snippetTable <- lmap handleError $ expand snip.expansion
+
   pure $ luaCall "s"
     [ propTable
     , snippetTable
     ]
+
   where
   propTable = luaTable $ fold
     [ [ "name" /\ luaString snip.name
