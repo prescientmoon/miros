@@ -96,52 +96,61 @@ compile scope = runExceptT $ go
   where
   go :: List Ast.Toplevel -> Context -> SteinerM NormalizedSnippet
   go (head : tail) context = case head of
-    Ast.Snippet snip -> flip untear (go tail context) do
+    Ast.Snippet snip -> do
       let
-        dependencies =
-          HS.unions
-            [ maybe HS.empty references snip.description
-            , references snip.name
-            , references snip.expansion
-            , references snip.trigger
+        handleError err =
+          throwError $ fold
+            [ "In snippet "
+            , pretty snip.name
+            , ":\n"
+            , indentString 2 err
             ]
-            # expandReferences context
+      flip untear (go tail context) $ flip catchError handleError do
+        let
+          dependencies =
+            HS.unions
+              [ maybe HS.empty references snip.description
+              , references snip.name
+              , references snip.expansion
+              , references snip.trigger
+              ]
+              # expandReferences context
 
-        loop :: DBLevel -> Worldline -> BoundVariable -> SteinerM Worldline
-        loop level worldline variable =
-          if HS.member level dependencies then do
-            boundBy <- evalExpression context worldline variable.boundBy
+          loop :: DBLevel -> Worldline -> BoundVariable -> SteinerM Worldline
+          loop level worldline variable =
+            if HS.member level dependencies then do
+              boundBy <- evalExpression context worldline variable.boundBy
 
-            let
-              choices = case EX.asChunk boundBy of
-                Just (EX.Array paths) -> paths
-                _ -> [ boundBy ]
+              let
+                choices = case EX.asChunk boundBy of
+                  Just (EX.Array paths) -> paths
+                  _ -> [ boundBy ]
 
-            index /\ choice <- lift $ Array.mapWithIndex (/\) choices
-            pure $ Array.snoc worldline $ Just
-              { index
-              , source: variable.boundBy
-              , value: choice
-              }
-          else pure $ Array.snoc worldline Nothing
+              index /\ choice <- lift $ Array.mapWithIndex (/\) choices
+              pure $ Array.snoc worldline $ Just
+                { index
+                , source: variable.boundBy
+                , value: choice
+                }
+            else pure $ Array.snoc worldline Nothing
 
-      worldline <- foldWithIndexM loop [] context.scope
-      name <- evalExpression context worldline snip.name
-        >>= expansionAsString
-      trigger <- evalExpression context worldline snip.trigger
-        >>= expansionAsString
-      description <- for snip.description
-        (evalExpression context worldline >=> expansionAsString)
-      expansion <- evalExpression context worldline snip.expansion
+        worldline <- foldWithIndexM loop [] context.scope
+        name <- evalExpression context worldline snip.name
+          >>= expansionAsString
+        trigger <- evalExpression context worldline snip.trigger
+          >>= expansionAsString
+        description <- for snip.description
+          (evalExpression context worldline >=> expansionAsString)
+        expansion <- evalExpression context worldline snip.expansion
 
-      pure
-        { name
-        , description
-        , trigger
-        , triggerKind: snip.triggerKind
-        , expansion
-        , modifiers: context.modifiers
-        }
+        pure
+          { name
+          , description
+          , trigger
+          , triggerKind: snip.triggerKind
+          , expansion
+          , modifiers: context.modifiers
+          }
 
     Ast.Block block -> do
       let

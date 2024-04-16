@@ -60,29 +60,39 @@ app arguments = do
     Generate config -> do
       inputs <- liftAff $ readdir config.input
       for_ inputs \input -> do
-        contents <- liftAff $ readTextFile UTF8 $ config.input <> "/" <> input
-
-        parsed <- liftEither
-          $ lmap pretty
-          $ runParser contents (parseToplevel <* optWs <* eof)
-        compiled <- liftEither $ sequence (compile parsed)
-        generated <- case config.generator of
-          Luasnip luasnipConfig ->
-            liftEither $ generateLuasnipFile luasnipConfig compiled
-
-        void $ liftAff $ runCommand $ "mkdir -p " <> config.output
-        log $ "Generated " <> show (Array.length compiled) <> " snippets 🚀 for " <> input
-
         let
-          outputExtension = case config.generator of
-            Luasnip _ -> "lua"
-          output = String.replace (Pattern ".miros")
-            (Replacement $ "." <> outputExtension)
-            input
+          handleError err =
+            throwError $ fold
+              [ "An error occurred while processing "
+              , input
+              , "\n"
+              , indentString 2 err
+              ]
 
-        let outputPath = config.output <> "/" <> output
-        liftAff $ writeTextFile UTF8 outputPath generated
-        void $ liftAff $ runCommand $ "stylua " <> outputPath
+        flip catchError handleError do
+          contents <- liftAff $ readTextFile UTF8 $ config.input <> "/" <> input
+
+          parsed <- liftEither
+            $ lmap pretty
+            $ runParser contents (parseToplevel <* optWs <* eof)
+          compiled <- liftEither $ sequence (compile parsed)
+          generated <- case config.generator of
+            Luasnip luasnipConfig ->
+              liftEither $ generateLuasnipFile luasnipConfig compiled
+
+          void $ liftAff $ runCommand $ "mkdir -p " <> config.output
+          log $ "Generated " <> show (Array.length compiled) <> " snippets 🚀 for " <> input
+
+          let
+            outputExtension = case config.generator of
+              Luasnip _ -> "lua"
+            output = String.replace (Pattern ".miros")
+              (Replacement $ "." <> outputExtension)
+              input
+
+          let outputPath = config.output <> "/" <> output
+          liftAff $ writeTextFile UTF8 outputPath generated
+          void $ liftAff $ runCommand $ "stylua " <> outputPath
 
 main :: Effect Unit
 main = do
