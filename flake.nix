@@ -7,7 +7,6 @@
       url = "github:thomashoneyman/purescript-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    oclis.url = "github:Airsequel/Oclis";
   };
 
   outputs = { nixpkgs, flake-utils, ... }@inputs:
@@ -62,7 +61,6 @@
                 purs-tidy-bin.purs-tidy-0_10_0
                 purs-backend-es
                 purescript-language-server
-                inputs.oclis.defaultPackage.${system}
               ];
             };
         });
