@@ -25,3 +25,7 @@ block auto !word
   string arrin
     name array index
     snip \@\⟨\@$1:$2\⟩
+
+  string nil
+    name ignore symbol
+    snip ⋄

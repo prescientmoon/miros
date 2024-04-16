@@ -64,6 +64,7 @@ syn match mirosOperator /(/ contained containedin=mirosCall
 syn match mirosNumber /\v\d/ contained containedin=mirosNonemptyDelim,mirosTabStop,mirosChoiceDelim
 syn match mirosComma /\v,/ contained containedin=mirosArray,mirosChoice
 hi link mirosComma mirosOperator
+syn match mirosOperator /\v⋄/ " I'm too lazy to contain this in the proper place
 
 hi link mirosString String
 hi link mirosOperator Operator

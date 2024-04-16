@@ -157,8 +157,10 @@ parseExpression context = P.label "expression" do
       "\\" : "⟨" : _ -> lit 2 "⟨"
       "\\" : "@" : _ -> lit 2 "@"
       "\\" : "$" : _ -> lit 2 "$"
+      "\\" : "⋄" : _ -> lit 2 "⋄"
       "\\" : "\\" : _ -> lit 2 "\\"
       "\\" : _ -> lit 1 "\\"
+      "⋄" : _ -> lit 1 ""
       "⟩" : _ -> pure Nothing
       "\n" : _ -> pure Nothing
       "," : _
@@ -169,7 +171,7 @@ parseExpression context = P.label "expression" do
         | otherwise -> lit 1 ":"
       Nil -> pure Nothing
       _ -> commit $ P.token do
-        s <- PP.takeWhile $ flip Array.notElem [ "\\", ",", "@", "⟩", "$", ":", "\n" ]
+        s <- PP.takeWhile $ flip Array.notElem [ "\\", ",", "@", "⟩", "$", ":", "\n", "⋄" ]
         pure $ Literal s
 
 -- }}}
