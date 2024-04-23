@@ -108,7 +108,7 @@ generateLuasnipSnippet snip = do
     if Array.null conditionModifiers then
       []
     else
-      [ "condition" /\ conditions ]
+      [ "condition" /\ fold conditions ]
     where
     conditionModifiers =
       Array.filter (fst >>> flip Array.notElem [ "auto", "word" ])
