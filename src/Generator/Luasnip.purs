@@ -1,4 +1,4 @@
-module Miros.Generator.Luasnip (LuasnipGenConfig, generateLuasnipFile) where
+        module Miros.Generator.Luasnip (LuasnipGenConfig, generateLuasnipFile) where
 
 import Miros.Prelude
 
@@ -57,7 +57,7 @@ generateLuasnipFile config snippets = do
       local f = ls.function_node
       local sn = ls.snippet_node
       local n = extras.nonempty
-      local extra_conditions = 
+      local extra_conditions =
       """ <> luaCall "require"
         [ luaString config.runtimeModule ]
   snippets <- traverse generateLuasnipSnippet snippets
@@ -108,7 +108,7 @@ generateLuasnipSnippet snip = do
     if Array.null conditionModifiers then
       []
     else
-      [ "condition" /\ String.joinWith " + " conditions ]
+      [ "condition" /\ conditions ]
     where
     conditionModifiers =
       Array.filter (fst >>> flip Array.notElem [ "auto", "word" ])
@@ -119,12 +119,12 @@ generateLuasnipSnippet snip = do
       "end" -> "conditions.line_end"
       "select" -> "conditions.has_selected_text"
       other -> "extra_conditions." <> other
-    conditions = (yes <#> mkCondition) <> (no <#> mkCondition <#> \c -> "(-" <> c <> ")")
+    conditions = (yes <#> mkCondition <#> (<>) "+") <> (no <#> mkCondition <#> (<>) "-")
 
 type ExpansionState =
   -- | It turns out luasnip doesn't like it when we
   -- | reuse the same jump-index multiple time, so we do it once
-  -- | and use lambda nodes to mirror the text for the rest of the appearences.
+  -- | and use lambda nodes to mirror the text for the rest of the appearances.
   { createdTabstops :: HashSet Int
   }
 
