@@ -21,28 +21,27 @@ import Miros.Evaluation.EvaluationContext
   )
 
 evalExpression
-  :: forall m
-   . MonadThrow String m
-  => Context
+  :: Boolean
+  -> Context
   -> Worldline
   -> Ast.Expr
-  -> m Expansion
-evalExpression context worldline = liftEither <<< loopUnescaped
+  -> SteinerM Expansion
+evalExpression expandArrays context worldline = loopUnescaped
   where
   -- | Lookup the value of an evaluated variable in scope
   lookup var = do
-    level <- note ("Undefined variable @" <> var)
+    level <- liftMaybe ("Undefined variable @" <> var)
       $ HM.lookup var context.nameMap
-    note ("Wordline did not collapse @" <> var)
+    liftMaybe ("Wordline did not collapse @" <> var)
       $ join
       $ Array.index worldline level
 
-  loopUnescaped :: Ast.Expr -> Either String Expansion
+  loopUnescaped :: Ast.Expr -> SteinerM Expansion
   loopUnescaped expr = do
     eae <- loop expr
-    note ("Invalid escape in expression " <> pretty expr) $ EAE.asUnescaped eae
+    liftMaybe ("Invalid escape in expression " <> pretty expr) $ EAE.asUnescaped eae
 
-  loop :: Ast.Expr -> Either String EAE.EscapeAlternatingExpansion
+  loop :: Ast.Expr -> SteinerM EAE.EscapeAlternatingExpansion
   loop = case _ of
     Ast.Empty -> pure mempty
     Ast.Newline -> pure $ EAE.singleton $ Literal "\n"
@@ -52,18 +51,27 @@ evalExpression context worldline = liftEither <<< loopUnescaped
     Ast.Var var -> lookup var <#> _.value <#> EAE.unescaped
     Ast.ArrayIndex name arr -> do
       evaluatedVar <- lookup name
-      expr <- note ("Empty array to index by variable @" <> name)
+      expr <- liftMaybe ("Empty array to index by variable @" <> name)
         $ Array.index arr (evaluatedVar.index `mod` Array.length arr)
       loopUnescaped expr <#> EAE.unescaped
     Ast.Array arr ->
-      traverse loopUnescaped arr
+      if expandArrays then
+        traverse loopUnescaped arr
+          <#> lift
+          # join
+          <#> EAE.unescaped
+      else traverse loopUnescaped arr
         <#> Array
         <#> EAE.singleton
     Ast.Concat arr -> traverse loop arr <#> fold
     Ast.Choice index arr ->
-      traverse loopUnescaped arr <#> Choice index <#> EAE.singleton
+      traverse loopUnescaped arr
+        <#> Choice index
+        <#> EAE.singleton
     Ast.Nonempty index inner ->
-      loop inner <#> EAE.collapse (Nonempty index) <#> EAE.unescaped
+      loop inner
+        <#> EAE.collapse (Nonempty index)
+        <#> EAE.unescaped
     Ast.Escape inner ->
       loopUnescaped inner <#> EAE.escaped
 
@@ -119,7 +127,7 @@ compile scope = runExceptT $ go
           loop :: DBLevel -> Worldline -> BoundVariable -> SteinerM Worldline
           loop level worldline variable =
             if HS.member level dependencies then do
-              boundBy <- evalExpression context worldline variable.boundBy
+              boundBy <- evalExpression false context worldline variable.boundBy
 
               let
                 choices = case EX.asChunk boundBy of
@@ -135,13 +143,13 @@ compile scope = runExceptT $ go
             else pure $ Array.snoc worldline Nothing
 
         worldline <- foldWithIndexM loop [] context.scope
-        name <- evalExpression context worldline snip.name
+        name <- evalExpression true context worldline snip.name
           >>= expansionAsString
-        trigger <- evalExpression context worldline snip.trigger
+        trigger <- evalExpression true context worldline snip.trigger
           >>= expansionAsString
         description <- for snip.description
-          (evalExpression context worldline >=> expansionAsString)
-        expansion <- evalExpression context worldline snip.expansion
+          (evalExpression true context worldline >=> expansionAsString)
+        expansion <- evalExpression true context worldline snip.expansion
 
         pure
           { name
