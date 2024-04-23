@@ -277,7 +277,7 @@ parseAbbreviation = P.label "abbreviation" do
   expansion <- P.label "abbreviation expansion" $ PP.reqIws *> parseExpression None
   pure $ Snippet
     { description: Nothing
-    , name: trigger
+    , name: Nothing
     , expansion
     , trigger
     , triggerKind: String

@@ -23,7 +23,7 @@ type Snippet =
   { triggerKind :: TriggerKind
   , trigger :: Expr
   , expansion :: Expr
-  , name :: Expr
+  , name :: Maybe Expr
   , description :: Maybe Expr
   }
 
@@ -92,7 +92,7 @@ makeSnippet (triggerKind /\ trigger) commands = do
     { triggerKind
     , trigger
     , expansion
-    , name: fromMaybe trigger incomplete.name
+    , name: incomplete.name
     , description: incomplete.description
     }
   where

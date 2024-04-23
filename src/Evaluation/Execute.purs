@@ -60,9 +60,10 @@ evalExpression expandArrays context worldline = loopUnescaped
           <#> lift
           # join
           <#> EAE.unescaped
-      else traverse loopUnescaped arr
-        <#> Array
-        <#> EAE.singleton
+      else
+        traverse loopUnescaped arr
+          <#> Array
+          <#> EAE.singleton
     Ast.Concat arr -> traverse loop arr <#> fold
     Ast.Choice index arr ->
       traverse loopUnescaped arr
@@ -118,7 +119,7 @@ compile scope = runExceptT $ go
           dependencies =
             HS.unions
               [ maybe HS.empty references snip.description
-              , references snip.name
+              , maybe HS.empty references snip.name
               , references snip.expansion
               , references snip.trigger
               ]
@@ -143,16 +144,16 @@ compile scope = runExceptT $ go
             else pure $ Array.snoc worldline Nothing
 
         worldline <- foldWithIndexM loop [] context.scope
-        name <- evalExpression true context worldline snip.name
-          >>= expansionAsString
-        trigger <- evalExpression true context worldline snip.trigger
-          >>= expansionAsString
+        name <- for snip.name
+          (evalExpression true context worldline >=> expansionAsString)
         description <- for snip.description
           (evalExpression true context worldline >=> expansionAsString)
+        trigger <- evalExpression true context worldline snip.trigger
+          >>= expansionAsString
         expansion <- evalExpression true context worldline snip.expansion
 
         pure
-          { name
+          { name: fromMaybe trigger name
           , description
           , trigger
           , triggerKind: snip.triggerKind
