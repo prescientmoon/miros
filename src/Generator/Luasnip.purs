@@ -1,4 +1,4 @@
-        module Miros.Generator.Luasnip (LuasnipGenConfig, generateLuasnipFile) where
+module Miros.Generator.Luasnip (LuasnipGenConfig, generateLuasnipFile) where
 
 import Miros.Prelude
 
@@ -102,7 +102,7 @@ generateLuasnipSnippet snip = do
     Just true -> [ "snippetType" /\ luaString "autosnippet" ]
     _ -> []
   wordTrigProp = case HM.lookup "word" snip.modifiers of
-    Just true -> [ "wordTrig" /\ "true" ]
+    Just false -> [ "wordTrig" /\ "false" ]
     _ -> []
   conditionProp =
     if Array.null conditionModifiers then
