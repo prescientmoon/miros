@@ -108,7 +108,7 @@ generateLuasnipSnippet snip = do
     if Array.null conditionModifiers then
       []
     else
-      [ "condition" /\ fold conditions ]
+      [ "condition" /\ conditions ]
     where
     conditionModifiers =
       Array.filter (fst >>> flip Array.notElem [ "auto", "word" ])
@@ -119,7 +119,7 @@ generateLuasnipSnippet snip = do
       "end" -> "conditions.line_end"
       "select" -> "conditions.has_selected_text"
       other -> "extra_conditions." <> other
-    conditions = (yes <#> mkCondition <#> (<>) "+") <> (no <#> mkCondition <#> (<>) "-")
+    conditions = (yes <#> mkCondition # String.joinWith "+") <> fold (no <#> mkCondition <#> (<>) "-")
 
 type ExpansionState =
   -- | It turns out luasnip doesn't like it when we
