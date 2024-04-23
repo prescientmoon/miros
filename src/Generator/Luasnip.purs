@@ -119,7 +119,7 @@ generateLuasnipSnippet snip = do
       "end" -> "conditions.line_end"
       "select" -> "conditions.has_selected_text"
       other -> "extra_conditions." <> other
-    conditions = (yes <#> mkCondition) <> (no <#> mkCondition <#> (<>) "-")
+    conditions = (yes <#> mkCondition) <> (no <#> mkCondition <#> \c -> "(-" <> c <> ")")
 
 type ExpansionState =
   -- | It turns out luasnip doesn't like it when we
