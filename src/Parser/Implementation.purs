@@ -8,22 +8,13 @@ import Miros.Prelude
 
 import Data.Array as Array
 import Data.List as List
+import Miros.Ast (Expr(..), Scope, Snippet, SnippetCommand(..), Toplevel(..), Trigger, TriggerKind(..), makeSnippet)
 import Miros.Helpers.Array as Miros.Array
 import Miros.Parser.Debug as PD
 import Miros.Parser.Lib as P
 import Miros.Parser.Pieces as PP
-import Miros.Ast
-  ( Expr(..)
-  , Scope
-  , Snippet
-  , SnippetCommand(..)
-  , Toplevel(..)
-  , Trigger
-  , TriggerKind(..)
-  , makeSnippet
-  )
 
-data ExprContext = ArrayHead | ArrayTail | None
+data ExprContext = ArrayHead | ArrayTail | Inline | None
 
 derive instance Eq ExprContext
 
@@ -163,16 +154,15 @@ parseExpression context = P.label "expression" do
       "⋄" : _ -> lit 1 ""
       "⟩" : _ -> pure Nothing
       "\n" : _ -> pure Nothing
-      "," : _
-        | context == ArrayTail || context == ArrayHead -> pure Nothing
-        | otherwise -> lit 1 ","
-      ":" : _
-        | context == ArrayHead -> pure Nothing
-        | otherwise -> lit 1 ":"
+      "," : _ | context == ArrayTail || context == ArrayHead -> pure Nothing
+      ":" : _ | context == ArrayHead -> pure Nothing
+      " " : _ | context == Inline -> pure Nothing
       Nil -> pure Nothing
-      _ -> commit $ P.token do
-        s <- PP.takeWhile $ flip Array.notElem [ "\\", ",", "@", "⟩", "$", ":", "\n", "⋄" ]
-        pure $ Literal s
+      head : _ -> commit $ P.token do
+        void $ P.next
+        tail <- PP.takeWhile $ flip Array.notElem
+          [ "\\", "@", "⟩", "$", "\n", "⋄", " ", ",", ":" ]
+        pure $ Literal $ head <> tail
 
 -- }}}
 -- {{{ Multline expressions
@@ -280,6 +270,19 @@ parseBlock = do
   modifierName =
     PP.takeWhile1 "block modifier name" $ PP.regex "[a-zA-Z0-9]"
 
+parseAbbreviation :: P.Parser Toplevel
+parseAbbreviation = P.label "abbreviation" do
+  PP.string "abbr"
+  trigger <- P.label "abbreviation trigger" $ PP.reqIws *> parseExpression Inline
+  expansion <- P.label "abbreviation expansion" $ PP.reqIws *> parseExpression None
+  pure $ Snippet
+    { description: Nothing
+    , name: trigger
+    , expansion
+    , trigger
+    , triggerKind: String
+    }
+
 parseBlockElement :: P.Parser (Maybe Toplevel)
 parseBlockElement = P.label "block element" do
   P.localPeek >>= case _ of
@@ -287,6 +290,7 @@ parseBlockElement = P.label "block element" do
     Just "b" -> Just <$> parseBlock
     Just "s" -> Just <$> parseStringSnippet
     Just "p" -> Just <$> parseStringSnippet
+    Just "a" -> Just <$> parseAbbreviation
     _ -> pure Nothing
 
 parseBlockElements :: P.Parser Scope

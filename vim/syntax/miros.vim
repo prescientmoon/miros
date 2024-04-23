@@ -21,8 +21,8 @@ syn match mirosBlockContext /\v(auto|start|end|math|text|word)/ contained contai
 hi link mirosBlockContext Constant
 syn match mirosOperator /\v!/ contained containedin=mirosBlock
 
-syn match mirosDecl /\v^\s*(desc|name|string|pattern)\s+/ nextgroup=mirosLiteral
-syn match mirosKeyword /\v(desc|name|string|pattern)/ contained containedin=mirosDecl
+syn match mirosDecl /\v^\s*(desc|name|string|pattern|abbr)\s+/ nextgroup=mirosLiteral
+syn match mirosKeyword /\v(desc|name|string|pattern|abbr)/ contained containedin=mirosDecl
 
 syn match mirosDecl /\v^\s*postfix(\s+|$)/ nextgroup=mirosLiteral
 syn match mirosKeyword /\vpostfix/ contained containedin=mirosDecl
