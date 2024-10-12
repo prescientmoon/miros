@@ -4,18 +4,14 @@ import Miros.Prelude
 
 import ArgParse.Basic (ArgParser, argument, choose, command, flagHelp, parseArgs, printArgError)
 import Data.Array as Array
-import Data.Bifunctor (lmap)
 import Data.String as String
-import Effect.Aff.Class (liftAff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import Effect.Class.Console as Log
-import Miros.Execution (compile)
+import Miros.Execution (compile, resolveImport)
 import Miros.Generator.Luasnip (LuasnipGenConfig, generateLuasnipFile)
-import Miros.Parser.Implementation (parseToplevel)
-import Miros.Parser.Lib (runParser)
-import Miros.Parser.Pieces (eof, optWs)
 import Node.Encoding (Encoding(..))
-import Node.FS.Aff (readTextFile, readdir, writeTextFile)
+import Node.FS.Aff (readdir, stat, writeTextFile)
+import Node.FS.Stats (isFile)
 import Node.Process (argv, setExitCode)
 
 -- {{{ Basic CLI types
@@ -70,29 +66,29 @@ app arguments = do
               ]
 
         flip catchError handleError do
-          contents <- liftAff $ readTextFile UTF8 $ config.input <> "/" <> input
+          stats <- liftAff $ stat $ config.input <> "/" <> input
+          when (isFile stats) do
+            parsed <- resolveImport config.input input
 
-          parsed <- liftEither
-            $ lmap pretty
-            $ runParser contents (parseToplevel <* optWs <* eof)
-          compiled <- liftEither $ sequence (compile parsed)
-          generated <- case config.generator of
-            Luasnip luasnipConfig ->
-              liftEither $ generateLuasnipFile luasnipConfig compiled
+            -- TODO: collect multiple errors here
+            compiled <- liftEither $ sequence (compile parsed)
+            generated <- case config.generator of
+              Luasnip luasnipConfig ->
+                liftEither $ generateLuasnipFile luasnipConfig compiled
 
-          void $ liftAff $ runCommand $ "mkdir -p " <> config.output
-          log $ "🚀 Generated " <> show (Array.length compiled) <> " snippets for " <> input
+            void $ liftAff $ runCommand $ "mkdir -p " <> config.output
+            log $ "🚀 Generated " <> show (Array.length compiled) <> " snippets for " <> input
 
-          let
-            outputExtension = case config.generator of
-              Luasnip _ -> "lua"
-            output = String.replace (String.Pattern ".miros")
-              (Replacement $ "." <> outputExtension)
-              input
+            let
+              outputExtension = case config.generator of
+                Luasnip _ -> "lua"
+              output = String.replace (String.Pattern ".miros")
+                (Replacement $ "." <> outputExtension)
+                input
 
-          let outputPath = config.output <> "/" <> output
-          liftAff $ writeTextFile UTF8 outputPath generated
-          void $ liftAff $ runCommand $ "stylua " <> outputPath
+            let outputPath = config.output <> "/" <> output
+            liftAff $ writeTextFile UTF8 outputPath generated
+            void $ liftAff $ runCommand $ "stylua " <> outputPath
 
 main :: Effect Unit
 main = do

@@ -24,5 +24,5 @@ workspace:
     registry: 50.3.0
   extra_packages:
     debugged:
-      git: https://github.com/mateiadrielrafael/purescript-debugged.git
+      git: https://github.com/starlitcanopy/purescript-debugged.git
       ref: 0d5a4149279129f10c8fe2a3ef280b9fde4d5116

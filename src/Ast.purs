@@ -50,6 +50,7 @@ data Toplevel
   = Block Block
   | For Name Expr
   | Snippet Snippet
+  | Import String
 
 type Scope = Array Toplevel
 

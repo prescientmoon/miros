@@ -206,6 +206,13 @@ parseFor = do
   value <- PP.reqIws *> parseExpression None
   pure $ For name value
 
+parseImport :: P.Parser Toplevel
+parseImport = do
+  PP.string "import"
+  let parsePath = PP.takeWhile1 "path" $ PP.regex "[a-zA-Z0-9-_\\.\\/]"
+  path <- PP.reqIws *> parsePath
+  pure $ Import path
+
 parseSnippetBody :: Trigger -> P.Parser Snippet
 parseSnippetBody trigger = P.label "snippet body" do
   commands <- PP.many $ PP.optWs *> P.absolute snipCommand
@@ -291,6 +298,7 @@ parseBlockElement = P.label "block element" do
     Just "s" -> Just <$> parseStringSnippet
     Just "p" -> Just <$> parseStringSnippet
     Just "a" -> Just <$> parseAbbreviation
+    Just "i" -> Just <$> parseImport
     _ -> pure Nothing
 
 parseBlockElements :: P.Parser Scope

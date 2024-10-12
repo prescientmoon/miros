@@ -1,0 +1,12 @@
+import ../good/abbreviation
+import ../good/empty-block.miros
+
+import for-array-index
+import for-array
+import for-multiline-array-index
+import for-multiline-array
+
+block
+  import nested-blocks
+  import variety-nested-blocks
+  import variety-snippet

@@ -9,6 +9,10 @@ syn match mirosName /\v\@\h\w*/ contained
 syn match mirosLiteral /\v.+/ contained contains=mirosName,mirosArray oneline
 hi link mirosLiteral mirosString
 
+syn match mirosImport /\vimport\s+(\w|\.|\/|-|_)+/
+hi link mirosImport mirosString
+syn match mirosKeyword /\vimport/ contained containedin=mirosImport
+
 syn match mirosFor /\vfor\s+\w+\s+\<-\s+/ nextgroup=mirosArray
 syn match mirosForName /\vfor\s+\w+\s+/ contained containedin=mirosFor
 hi link mirosForName mirosName

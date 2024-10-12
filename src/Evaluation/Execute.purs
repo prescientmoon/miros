@@ -1,4 +1,4 @@
-module Miros.Execution (compile) where
+module Miros.Execution (compile, resolveImport) where
 
 import Miros.Prelude
 
@@ -8,17 +8,15 @@ import Data.HashSet as HS
 import Data.List as List
 import Miros.Ast as Ast
 import Miros.Evaluation.EscapeAlternatingExpansion as EAE
+import Miros.Evaluation.EvaluationContext (BoundVariable, Context, DBLevel, NormalizedSnippet, Worldline, expandReferences, references)
 import Miros.Evaluation.Expansion (Expansion, ExpansionChunk(..))
 import Miros.Evaluation.Expansion as EX
-import Miros.Evaluation.EvaluationContext
-  ( BoundVariable
-  , Context
-  , DBLevel
-  , NormalizedSnippet
-  , Worldline
-  , expandReferences
-  , references
-  )
+import Miros.Parser.Implementation (parseToplevel)
+import Miros.Parser.Lib (runParser)
+import Miros.Parser.Pieces (eof, optWs)
+import Node.Encoding (Encoding(..))
+import Node.FS.Aff (readTextFile)
+import Node.Path (FilePath, dirname)
 
 evalExpression
   :: Boolean
@@ -86,7 +84,7 @@ expansionAsString e = traverse go (EX.chunks e) <#> fold
   go :: EX.ExpansionChunk -> m String
   go = case _ of
     EX.Literal l -> pure l
-    other -> throwError $ "Cannot convert complex expressions to string: " <>
+    _other -> throwError $ "Cannot convert complex expressions to string: " <>
       pretty e
 
 -- | Basic monad stack which can error out and branch out.
@@ -185,5 +183,45 @@ compile scope = runExceptT $ go
           , boundBy: expression
           }
       }
+
+    Ast.Import path -> do
+      throwError $ fold
+        [ "Import hasn't been resolved before compilation: "
+        , pretty path
+        ]
+
   go Nil _ = lift []
 
+-- | Recursively resolve imports until the structure has been flattened.
+resolveImport :: FilePath -> FilePath -> ExceptT String Aff Ast.Scope
+resolveImport basePath path = do
+  let
+    fullPath = basePath <> "/" <> path <>
+      if endsWith ".miros" path then ""
+      else ".miros"
+    handleError err =
+      throwError $ fold
+        [ "An error occurred while processing "
+        , fullPath
+        , "\n"
+        , indentString 2 err
+        ]
+
+  flip catchError handleError do
+    contents <- liftAff $ readTextFile UTF8 $ fullPath
+
+    parsed <- liftEither
+      $ lmap pretty
+      $ runParser contents (parseToplevel <* optWs <* eof)
+
+    let
+      go :: Ast.Toplevel -> ExceptT String Aff Ast.Toplevel
+      go (Ast.Import importPath) = do
+        scope <- resolveImport (dirname fullPath) importPath
+        pure $ Ast.Block { elements: scope, modifiers: mempty }
+      go (Ast.Block block) = do
+        elements <- traverse go block.elements
+        pure $ Ast.Block $ block { elements = elements }
+      go other = pure other
+
+    traverse go parsed

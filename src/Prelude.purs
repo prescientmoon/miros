@@ -1,33 +1,36 @@
 module Miros.Prelude
   ( module Prelude
-  , module Data.Maybe
-  , module Data.Tuple
-  , module Data.Tuple.Nested
-  , module Control.Monad.State
-  , module Data.List
-  , module Data.Either
-  , module Data.Foldable
-  , module Effect
-  , module Effect.Class
-  , module Effect.Class.Console
-  , module Effect.Aff
-  , module Effect.Exception.Unsafe
-  , module Data.Debug
-  , module Data.Generic.Rep
-  , module Debug
   , module Control.Alternative
   , module Control.Lazy
-  , module Partial.Unsafe
   , module Control.Monad.Error.Class
+  , module Control.Monad.Except
+  , module Control.Monad.List.Trans
+  , module Control.Monad.State
+  , module Data.Array.NonEmpty
+  , module Data.Bifunctor
+  , module Data.Debug
+  , module Data.Either
+  , module Data.Foldable
+  , module Data.FoldableWithIndex
+  , module Data.Generic.Rep
   , module Data.HashMap
   , module Data.HashSet
-  , module Data.FoldableWithIndex
-  , module Data.Traversable
-  , module Data.Array.NonEmpty
   , module Data.Int
-  , module Control.Monad.Except
+  , module Data.List
+  , module Data.Maybe
   , module Data.Newtype
   , module Data.String
+  , module Data.Traversable
+  , module Data.Tuple
+  , module Data.Tuple.Nested
+  , module Debug
+  , module Effect
+  , module Effect.Aff
+  , module Effect.Aff.Class
+  , module Effect.Class
+  , module Effect.Class.Console
+  , module Effect.Exception.Unsafe
+  , module Partial.Unsafe
   , unimplemented
   , logPretty
   , traceMPretty
@@ -35,14 +38,18 @@ module Miros.Prelude
   , pretty
   , throwawayState
   , indentString
+  , startsWith
+  , endsWith
   ) where
 
 import Prelude
 
+import Data.Bifunctor (class Bifunctor, bimap, lmap, rmap)
 import Control.Alternative (class Alt, class Alternative, empty, (<|>))
 import Control.Lazy (class Lazy, defer, fix)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, catchJust, liftEither, liftMaybe, throwError, try, withResource)
 import Control.Monad.Except (class MonadError, class MonadTrans, Except, ExceptT(..), catchError, catchJust, except, lift, mapExcept, mapExceptT, runExcept, runExceptT, throwError, withExcept, withExceptT)
+import Control.Monad.List.Trans (class MonadTrans, ListT(..), Step(..), runListT, runListTRec)
 import Control.Monad.State (class MonadState, class MonadTrans, State, StateT(..), evalState, evalStateT, execState, execStateT, get, gets, lift, mapState, mapStateT, modify, modify_, put, runState, runStateT, state, withState, withStateT)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -70,6 +77,7 @@ import Effect.Class.Console (clear, group, groupCollapsed, groupEnd, grouped, in
 import Effect.Exception.Unsafe (unsafeThrow)
 import Partial.Unsafe (unsafePartial)
 import Prim.TypeError (class Warn, Text)
+import Effect.Aff.Class (class MonadAff, liftAff)
 
 unimplemented :: forall a. Warn (Text "unimplemenet") => a
 unimplemented = unsafeThrow "unimplemented"
@@ -102,3 +110,12 @@ indentString i =
   String.split (String.Pattern "\n")
     >>> map ((<>) (Array.fold $ Array.replicate i " "))
     >>> unlines
+
+startsWith :: String -> String -> Boolean
+startsWith prefix string = String.take (String.length prefix) string == prefix
+
+endsWith :: String -> String -> Boolean
+endsWith suffix string =
+  String.drop
+    (String.length string - String.length suffix)
+    string == suffix
