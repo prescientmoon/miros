@@ -1,27 +1,29 @@
 -- | Contains a few premade indentation-aware parsers
 module Miros.Parser.Pieces
-  ( takeWhile
-  , takeWhile1
-  , many
-  , optWs
-  , reqWs
-  , optIws
-  , reqIws
+  ( digit
+  , eatEol
+  , eof
+  , exactWhitespace
+  , expect
+  , forcePeek
+  , inscribe
   , isDigit
+  , isEol
   , isIws
   , isWs
-  , exactWhitespace
-  , nat
-  , eof
-  , isEol
-  , eatEol
   , literal
-  , forcePeek
-  , digit
-  , expect
-  , sepBy
+  , many
+  , nat
+  , optIws
+  , optWs
   , regex
+  , reqIws
+  , reqWs
+  , runes
+  , sepBy
   , string
+  , takeWhile
+  , takeWhile1
   ) where
 
 import Miros.Prelude
@@ -156,7 +158,11 @@ nat = P.label "natural" do
 
 -- }}}
 -- {{{ Strings
+-- | Split a string into it's unicode "characters" (whatever js means by that)
 foreign import runes :: String -> Array P.Rune
+
+-- | The inverse of `runes`
+foreign import inscribe :: Array P.Rune -> String
 
 -- Similar to `expect`, but for an entire string
 string :: String -> P.Parser Unit

@@ -19,9 +19,9 @@ hi link mirosForName mirosName
 syn match mirosKeyword /\vfor/ contained containedin=mirosForName
 syn match mirosOperator "\v\<\-" contained containedin=mirosFor
 
-syn match mirosBlock /\v^\s*block(\s+(!?(auto|start|end|math|text|word)))*/
+syn match mirosBlock /\v^\s*block(\s+(!?(auto|start|end|math|text|word|capitalize)))*/
 syn match mirosKeyword /\vblock/ contained containedin=mirosBlock
-syn match mirosBlockContext /\v(auto|start|end|math|text|word)/ contained containedin=mirosBlock
+syn match mirosBlockContext /\v(auto|start|end|math|text|word|capitalize)/ contained containedin=mirosBlock
 hi link mirosBlockContext Constant
 syn match mirosOperator /\v!/ contained containedin=mirosBlock
 

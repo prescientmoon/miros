@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.HashMap as HM
 import Data.HashSet as HS
 import Data.List as List
+import Data.String as String
 import Miros.Ast as Ast
 import Miros.Evaluation.EscapeAlternatingExpansion as EAE
 import Miros.Evaluation.EvaluationContext (BoundVariable, Context, DBLevel, NormalizedSnippet, Worldline, expandReferences, references)
@@ -13,7 +14,7 @@ import Miros.Evaluation.Expansion (Expansion, ExpansionChunk(..))
 import Miros.Evaluation.Expansion as EX
 import Miros.Parser.Implementation (parseToplevel)
 import Miros.Parser.Lib (runParser)
-import Miros.Parser.Pieces (eof, optWs)
+import Miros.Parser.Pieces (eof, inscribe, optWs, runes)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile)
 import Node.Path (FilePath, dirname)
@@ -97,9 +98,11 @@ untear :: forall a. SteinerM a -> SteinerM a -> SteinerM a
 untear = over2 ExceptT (<>)
 
 compile :: Ast.Scope -> Array (Either String NormalizedSnippet)
-compile scope = runExceptT $ go
-  (List.fromFoldable scope)
-  { scope: mempty, nameMap: HM.empty, modifiers: HM.empty }
+compile scope = runExceptT do
+  normalized <- go
+    (List.fromFoldable scope)
+    { scope: mempty, nameMap: HM.empty, modifiers: HM.empty }
+  applySpecialModifiers normalized
   where
   go :: List Ast.Toplevel -> Context -> SteinerM NormalizedSnippet
   go (head : tail) context = case head of
@@ -191,6 +194,47 @@ compile scope = runExceptT $ go
         ]
 
   go Nil _ = lift []
+
+-- | Certain modifiers like `capitalize` modify the behaviour of snippet 
+-- | generation. This function applies such logic. For instance, in the case of 
+-- | `capitalize`, this function creates another copy of the snippet which has
+-- | the first character capitalized.
+applySpecialModifiers :: NormalizedSnippet -> SteinerM NormalizedSnippet
+applySpecialModifiers = handleCapitalize
+  where
+  handleCapitalize snippet = case HM.lookup "capitalize" snippet.modifiers of
+    Just true | snippet.triggerKind == Ast.String ->
+      lift
+        [ snippet { modifiers = modifiers }
+        , snippet
+            { trigger = capitalize snippet.trigger
+            , expansion = capitalizeExpansion snippet.expansion
+            , modifiers = modifiers
+            }
+        ]
+      where
+      modifiers = HM.delete "capitalize" snippet.modifiers
+      capitalize =
+        runes
+          >>> Array.modifyAt 0 String.toUpper
+          >>> foldMap inscribe
+
+      -- Cannot use pointfree notation because of recursion
+      capitalizeExpansion :: Expansion -> Expansion
+      capitalizeExpansion e = e
+        # EX.chunks
+        # Array.modifyAt 0 capitalizeLiteral
+        # fold
+        # Array.foldMap EX.singleton
+
+      capitalizeLiteral :: ExpansionChunk -> ExpansionChunk
+      capitalizeLiteral (Literal l) = Literal $ capitalize l
+      capitalizeLiteral (Nonempty ix e) = Nonempty ix $ capitalizeExpansion e
+      capitalizeLiteral (Choice ix es) = Choice ix $ capitalizeExpansion <$> es
+      capitalizeLiteral (Array es) = Array $ capitalizeExpansion <$> es
+      capitalizeLiteral other = other
+
+    _ -> pure snippet
 
 -- | Recursively resolve imports until the structure has been flattened.
 resolveImport :: FilePath -> FilePath -> ExceptT String Aff Ast.Scope
