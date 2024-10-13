@@ -193,7 +193,7 @@ compile scope = runExceptT do
         , pretty path
         ]
 
-    Ast.Comment path -> lift []
+    Ast.Comment path -> go tail context
 
   go Nil _ = lift []
 
