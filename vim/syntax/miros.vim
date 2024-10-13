@@ -39,7 +39,7 @@ syn match mirosArrayColon /\v:/ contained containedin=mirosArrayMap
 hi link mirosArrayColon mirosOperator
 
 syn region mirosShortSnipDecl matchgroup=mirosKeyword start=/\v^\s*snip\s+/ end=/\v$/ contains=mirosName,mirosArray,mirosTabstop,mirosNonempty,mirosNeEscape,mirosCapture,mirosChoice,mirosCall
-syn region mirosLongSnipDecl matchgroup=mirosKeyword start=/\v^\s*snip\s*$/ end=/\v^\s*\n/  contains=mirosName,mirosArray,mirosTabstop,mirosNonempty,mirosNeEscape,mirosCapture,mirosChoice,mirosCall
+syn region mirosLongSnipDecl matchgroup=mirosKeyword start=/\v^\s*snip\s*$/ end=/\v(^\s*\n|--)/  contains=mirosName,mirosArray,mirosTabstop,mirosNonempty,mirosNeEscape,mirosCapture,mirosChoice,mirosCall
 
 syn match mirosTabStop /\v\$\d/ contained
 hi link mirosTabStop mirosOperator
