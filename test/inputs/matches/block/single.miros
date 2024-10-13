@@ -1,0 +1,3 @@
+block auto capitalize !math !word
+  abbr from1 to1
+  abbr from2 to2

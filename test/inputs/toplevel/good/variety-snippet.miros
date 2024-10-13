@@ -3,6 +3,7 @@ string first
   desc this is the first example snippet
   snip single line snippet
 
+-- this is an auto block
 block auto
   pattern second
     snip

@@ -1,0 +1,10 @@
+block auto
+  block math
+    block word
+      block capitalize
+        block !word
+          block !math
+            abbr from1 to1
+        block !math
+          block !word
+            abbr from2 to2

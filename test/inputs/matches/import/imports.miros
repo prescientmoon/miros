@@ -1,0 +1,4 @@
+import common/snippets
+
+block auto
+  import common/snippets.miros
