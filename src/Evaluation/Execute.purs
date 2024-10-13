@@ -193,6 +193,8 @@ compile scope = runExceptT do
         , pretty path
         ]
 
+    Ast.Comment path -> lift []
+
   go Nil _ = lift []
 
 -- | Certain modifiers like `capitalize` modify the behaviour of snippet 

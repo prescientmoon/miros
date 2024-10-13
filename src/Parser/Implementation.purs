@@ -198,6 +198,12 @@ parseMultilineExpression context = P.label "multiline expression" do
 
 -- }}}
 -- {{{ Toplevel statemenets 
+parseComment :: P.Parser Toplevel
+parseComment = do
+  PP.string "--"
+  contents <- PP.reqIws *> PP.takeWhile (\r -> r /= "\n")
+  pure $ Comment contents
+
 parseFor :: P.Parser Toplevel
 parseFor = do
   PP.string "for"
@@ -299,6 +305,7 @@ parseBlockElement = P.label "block element" do
     Just "p" -> Just <$> parseStringSnippet
     Just "a" -> Just <$> parseAbbreviation
     Just "i" -> Just <$> parseImport
+    Just "-" -> Just <$> parseComment
     _ -> pure Nothing
 
 parseBlockElements :: P.Parser Scope

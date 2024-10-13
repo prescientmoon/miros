@@ -31,15 +31,16 @@ module Miros.Prelude
   , module Effect.Class.Console
   , module Effect.Exception.Unsafe
   , module Partial.Unsafe
-  , unimplemented
-  , logPretty
-  , traceMPretty
-  , unlines
-  , pretty
-  , throwawayState
-  , indentString
-  , startsWith
   , endsWith
+  , indentString
+  , logPretty
+  , pretty
+  , prettyDelta
+  , startsWith
+  , throwawayState
+  , traceMPretty
+  , unimplemented
+  , unlines
   ) where
 
 import Prelude
@@ -93,6 +94,12 @@ logPretty a = log $ pretty a
 
 traceMPretty :: forall m @a. Debug a => Monad m => a -> m Unit
 traceMPretty a = traceM $ pretty a
+
+prettyDelta :: forall @a. Debug a => a -> a -> String
+prettyDelta a b =
+  prettyPrintDeltaWith
+    defaultPrettyPrintOptions { maxDepth = Nothing }
+    $ diff a b
 
 unlines :: Array String -> String
 unlines = joinWith "\n"

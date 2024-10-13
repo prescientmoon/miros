@@ -51,6 +51,7 @@ data Toplevel
   | For Name Expr
   | Snippet Snippet
   | Import String
+  | Comment String
 
 type Scope = Array Toplevel
 
