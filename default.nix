@@ -13,4 +13,9 @@
       purs-backend-es
       ;
   };
+
+  miros-nvim = pkgs.vimUtils.buildVimPlugin {
+    name = "miros-nvim";
+    src = ./vim;
+  };
 }
