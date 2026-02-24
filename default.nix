@@ -1,11 +1,11 @@
 {
   sources ? import ./npins,
   pkgs ? import sources.nixpkgs { },
-  pursPkgs ? import ./purs-pkgs.nix { inherit pkgs sources; },
-  mkSpagoDerivation ? import ./mk-spago-derivation.nix { inherit pkgs sources; },
+  pursPkgs ? import ./nix/purs-pkgs.nix { inherit pkgs sources; },
+  mkSpagoDerivation ? import ./nix/mk-spago-derivation.nix { inherit pkgs sources; },
 }:
 {
-  miros = pkgs.callPackage (import ./miros.nix) {
+  miros = pkgs.callPackage (import ./nix/miros.nix) {
     inherit mkSpagoDerivation;
     inherit (pursPkgs)
       purs-unstable

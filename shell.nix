@@ -1,7 +1,7 @@
 {
   sources ? import ./npins,
   pkgs ? import sources.nixpkgs { },
-  pursPkgs ? import ./purs-pkgs.nix { inherit pkgs; },
+  pursPkgs ? import ./nix/purs-pkgs.nix { inherit pkgs; },
 }:
 pkgs.mkShell {
   packages = [

@@ -1,5 +1,5 @@
 {
-  sources ? import ./npins,
+  sources ? import ../npins,
   pkgs ? import sources.nixpkgs { },
 }:
 let

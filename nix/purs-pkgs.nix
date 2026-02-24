@@ -1,5 +1,5 @@
 {
-  sources ? import ./npins,
+  sources ? import ../npins,
   pkgs ? import sources.nixpkgs { },
 }:
 # These don't actually need to be overlays, so we can simply call them with

@@ -13,17 +13,17 @@ mkSpagoDerivation {
   version = "unstable-2026-02-24";
   pname = "miros";
   src = lib.fileset.toSource {
-    root = ./.;
+    root = ../.;
     fileset = lib.fileset.unions [
-      ./src
-      ./test
-      ./spago.lock
-      ./spago.yaml
+      ../src
+      ../test
+      ../spago.lock
+      ../spago.yaml
     ];
   };
 
-  spagoYaml = ./spago.yaml;
-  spagoLock = ./spago.lock;
+  spagoYaml = ../spago.yaml;
+  spagoLock = ../spago.lock;
   nativeBuildInputs = [
     purs-unstable
     spago-unstable
