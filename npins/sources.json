@@ -1,0 +1,63 @@
+{
+  "pins": {
+    "mkSpagoDerivation": {
+      "type": "Git",
+      "repository": {
+        "type": "GitHub",
+        "owner": "jeslie0",
+        "repo": "mkSpagoDerivation"
+      },
+      "branch": "main",
+      "submodules": false,
+      "revision": "a580db104b5ff6bfb9948905942e2974b32b850d",
+      "url": "https://github.com/jeslie0/mkSpagoDerivation/archive/a580db104b5ff6bfb9948905942e2974b32b850d.tar.gz",
+      "hash": "sha256-1gQADPHbw7Y548+lwiBtpIyUnl+yOrCmCHada7by7aI="
+    },
+    "nixpkgs": {
+      "type": "Channel",
+      "name": "nixpkgs-unstable",
+      "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.05pre948651.724cf38d99ba/nixexprs.tar.xz",
+      "hash": "sha256-5xZ8rQTzV4cSAPMvIZpVpF05p5iwUnEuONeelwseA4g="
+    },
+    "purescript-overlay": {
+      "type": "Git",
+      "repository": {
+        "type": "GitHub",
+        "owner": "thomashoneyman",
+        "repo": "purescript-overlay"
+      },
+      "branch": "main",
+      "submodules": false,
+      "revision": "af71d25ea276b03c46e79cf6ef59edd0a938dfd3",
+      "url": "https://github.com/thomashoneyman/purescript-overlay/archive/af71d25ea276b03c46e79cf6ef59edd0a938dfd3.tar.gz",
+      "hash": "sha256-6WdiHwc7cM07ttMh3JQslHzmwL9+RaDvf2OwZ0bsWu0="
+    },
+    "registry": {
+      "type": "Git",
+      "repository": {
+        "type": "GitHub",
+        "owner": "purescript",
+        "repo": "registry"
+      },
+      "branch": "main",
+      "submodules": false,
+      "revision": "d8df55cf87f0aef3ff4a6ab4a45d6d96355aeffc",
+      "url": "https://github.com/purescript/registry/archive/d8df55cf87f0aef3ff4a6ab4a45d6d96355aeffc.tar.gz",
+      "hash": "sha256-SjxMEy8MFQ+fqYNo5scByDBTH7fy/JDJNxs49dRTsP0="
+    },
+    "registry-index": {
+      "type": "Git",
+      "repository": {
+        "type": "GitHub",
+        "owner": "purescript",
+        "repo": "registry-index"
+      },
+      "branch": "main",
+      "submodules": false,
+      "revision": "6291c422409577341fd59533d60ac12774719ec6",
+      "url": "https://github.com/purescript/registry-index/archive/6291c422409577341fd59533d60ac12774719ec6.tar.gz",
+      "hash": "sha256-2S2k7IISa1fhCqyZVnQGUeEvjgqLVYAzh6/EuM2TJYY="
+    }
+  },
+  "version": 7
+}
