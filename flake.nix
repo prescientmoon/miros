@@ -2,7 +2,7 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    purifix.url = "github:purifix/purifix";
+    mkSpagoDerivation.url = "github:jeslie0/mkSpagoDerivation";
     purescript-overlay = {
       url = "github:thomashoneyman/purescript-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -14,40 +14,51 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs =
-          (nixpkgs.legacyPackages.${system}.extend inputs.purifix.overlay).extend
-            inputs.purescript-overlay.overlays.default;
+        base = nixpkgs.legacyPackages.${system};
+        spagoOverlay = inputs.mkSpagoDerivation.overlays.default;
+        pursOverlay = inputs.purescript-overlay.overlays.default;
+        pkgs = (base.extend spagoOverlay).extend pursOverlay;
 
-        mirosProject = pkgs.purifix { src = ./.; };
-
-        deps = [
+        binDeps = [
           pkgs.stylua
           pkgs.nodejs
         ];
 
-        evaluate = "import {main} from 'file://$out/output/Main/index.js'; main();";
-      in
-      rec {
-        packages.miros = pkgs.symlinkJoin {
-          inherit (mirosProject.run) name meta;
-          paths = [ mirosProject ];
-          nativeBuildInputs = [ pkgs.makeWrapper ];
-          postBuild = ''
-            mkdir -p $out/bin
-            echo "#!${pkgs.runtimeShell}" >> $out/bin/miros
-            echo "node \
-              --input-type=module \
-              --abort-on-uncaught-exception \
-              --trace-sigint \
-              --trace-uncaught \
-              --eval=\"${evaluate}\" -- \"\$@"\" >> $out/bin/miros
-            chmod +x $out/bin/miros
+        miros = pkgs.mkSpagoDerivation {
+          spagoYaml = ./spago.yaml;
+          spagoLock = ./spago.lock;
+          src = ./.;
+          version = "unstable-2026-02-24";
+          nativeBuildInputs = [
+            pkgs.purs-unstable
+            pkgs.spago-unstable
+            pkgs.esbuild
+            pkgs.makeWrapper
+            pkgs.purs-backend-es
+            pkgs.nodejs
+          ];
+
+          buildPhase = ''
+            spago bundle --platform node
+          '';
+
+          doCheck = true;
+          checkPhase = ''
+            runHook preCheck
+            spago test
+            runHook postCheck
+          '';
+
+          installPhase = ''
+            install -Dm755 index.js $out/bin/miros 
             wrapProgram $out/bin/miros \
-              --prefix PATH : ${pkgs.lib.makeBinPath deps}
+              --prefix PATH : ${pkgs.lib.makeBinPath binDeps}
           '';
         };
-
-        packages.default = packages.miros;
+      in
+      {
+        packages.miros = miros;
+        packages.default = miros;
         packages.miros-nvim = pkgs.vimUtils.buildVimPlugin {
           name = "miros-nvim";
           src = ./vim;
@@ -63,6 +74,7 @@
               purs-tidy-bin.purs-tidy-0_10_0
               purs-backend-es
               purescript-language-server
+              esbuild
             ];
           };
       }

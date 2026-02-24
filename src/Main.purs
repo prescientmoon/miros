@@ -92,7 +92,7 @@ app arguments = do
 
 main :: Effect Unit
 main = do
-  arguments <- argv <#> Array.drop 1
+  arguments <- argv <#> Array.drop 2
   launchAff_ do
     result <- runExceptT (app arguments)
     case result of
