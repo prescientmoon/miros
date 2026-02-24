@@ -57,8 +57,6 @@
           with pkgs;
           mkShell {
             buildInputs = [
-              nodePackages_latest.typescript
-              nodePackages_latest.ts-node
               nodejs
               purs
               spago-unstable
